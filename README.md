@@ -8,4 +8,4 @@
 
 # Nana7miBot
 
-_✨ 基于 [go-cqhttp](https://github.com/Mrs4s/go-cqhttp) 以及 [OneBot](https://github.com/howmanybots/onebot/blob/master/README.md) Python 机器人框架实现 ✨_  
+_✨ 基于 [go-cqhttp](https://github.com/Mrs4s/go-cqhttp) 以及 [OneBot](https://github.com/howmanybots/onebot/blob/master/README.md) 的 Python 机器人框架实现 ✨_  
