@@ -30,7 +30,7 @@ class Online:
     
     async def check(self):
         try:
-            msg = self.online()
+            msg = await self.online()
         except Exception:
             return
         if msg and msg != self.last_online_status:
