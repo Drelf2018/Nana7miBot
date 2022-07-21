@@ -1,7 +1,7 @@
 import asyncio
 import time
 from io import BytesIO
-from random import randint
+from random import randint, choice
 from typing import Tuple, Optional
 
 import httpx
@@ -268,7 +268,7 @@ class Live2Pic:
         
         callback = {
             'wc': lambda wc: self.paste(wc, (90, 940)),
-            'ex': lambda face: self.paste(face, (20, 1375)),
+            'ex': lambda face: self.paste(face, (910, 1375)),
             'bar': lambda bar: self.paste(bar, (-75, 500)),
             'info': lambda x: word2pic(self.liveinfo, self.folder),
             'get_bar': lambda data: get_data_fig(*data),
@@ -307,17 +307,22 @@ class Live2Pic:
                     if code == 'info':
                         self.liveinfo, cover = data
                         cover = circle_corner(cover).resize((cover.width*130//cover.height, 130), Image.ANTIALIAS)
-                        await self.paste(cover, (520, 150))
+                        await self.paste(cover, (570, 150))
 
                     func = callback[code]
                     if func:
                         pending.add(asyncio.create_task(func(data)))
 
+        quotations = [
+            '你们会无缘无故的发可爱，就代表哪天无缘无故发恶心',
+            '已经发现很多人是双面人了，彼此放过吧'
+        ]
+
         t2s = lambda tt: time.strftime('%m/%d %H:%M', time.localtime(tt))
         self.draw.text((70, 178), '标题：'+self.liveinfo["title"], fill=self.text_color, font=self.fontbd[32])
         self.draw.text((70, 228), f'时间：{t2s(self.liveinfo["st"])} - {t2s(self.liveinfo["sp"])}', fill=self.text_color, font=self.font[28])
         self.draw.text((600, 1290), '*数据来源：api.nana7mi.link', fill='grey', font=self.font[30])
-        self.draw.text((290, 1440), '你们会无缘无故的发可爱，就代表哪天无缘无故发恶心', fill='grey', font=self.font[32])
+        self.draw.text((140, 1440), choice(quotations), fill='grey', font=self.font[32])
 
         self.draw.text((70, 105), '直播记录', fill=self.text_color, font=self.fontbd[50])
         self.draw.text((70, 271), '基础数据', fill=self.text_color, font=self.fontbd[40])
@@ -353,15 +358,14 @@ class Live2Pic:
             for j in range(w):
                 pix[j, i] = int((8-0.02*i) * pix[j, i])  # 下半部分透明度线性降低
 
-        self.bg.paste(body, (885-w//2, 20), mask=a)
+        self.bg.paste(body, (935-w//2, 20), mask=a)
 
         card = Image.open(f'{self.folder}card{randint(0,1)}.png')
         card = card.resize((100, 100), Image.ANTIALIAS)
-        self.bg.paste(card, (170, 1400), mask=card.getchannel('A'))
+        self.bg.paste(card, (20, 1400), mask=card.getchannel('A'))
 
         return self.bg
 
 
 if __name__ == '__main__':
-    asyncio.run(Live2Pic().makePic()).show()
-    asyncio.run(Live2Pic().makePic()).show()
+    asyncio.run(Live2Pic().makePic()).save('live.png')
