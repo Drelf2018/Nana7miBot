@@ -39,6 +39,7 @@ class Online:
                 await bot.send_all_group_msg('七海Nana7mi '+msg, id='online')
             elif msg == '刚刚在线了':
                 await bot.send_all_group_msg('七海Nana7mi '+msg, id='online')
+        bot.info(msg, 'online')
 
 
 # 七海Nana7mi 微博上线监控

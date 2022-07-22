@@ -55,7 +55,7 @@ async def send_live_info(event):
     title = info['room_info']['title']
     area = info['room_info']['area_name']
     cover = info['room_info']['cover']
-    await bot.send_all_group_msg(f'{name} 正在 {area} 分区直播\n标题：【{title}】[CQ:image,file={cover}]', id='live')
+    await bot.send_all_group_msg(f'{name} 正在 {area} 分区直播\n标题：{title}[CQ:image,file={cover}]', id='live')
 
 
 # 重启监听

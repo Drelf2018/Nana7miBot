@@ -85,5 +85,6 @@ async def bili(uid):
                                     userdata.update({key: u[key]})
                                     bot.info(msg, 'BILI')
                                     await bot.send_all_group_msg(msg, 'spider')
+        bot.info('资料更新完成', 'BILI')
     except Exception as e:
         bot.error(e, 'BILI')

@@ -12,7 +12,7 @@ async def weibo(uid):
     bot.info(f'正在更新用户 {uid} 微博', 'Weibo')
     try:
         data = get_data(uid)
-        userInfo = {}
+        userInfo = dict()
     except Exception as e:
         bot.error(f'更新用户 {uid} 微博失败 {e}', 'Weibo')
         return
@@ -36,6 +36,7 @@ async def weibo(uid):
                 except Exception as e:
                     bot.error(f'爬取用户 {uid} 信息失败 {e}', 'Weibo')
 
+            # 文字版
             msg = '{name}\n粉丝 {follower} | 关注 {follow}\n发送了微博:\n'.format_map(userInfo)
             if post['repo']:
                 msg += '\n{repo}\n----------'.format_map(post)
@@ -43,12 +44,13 @@ async def weibo(uid):
 
             await bot.send_all_group_msg(msg, uid)
             
+            # 图片版
             image = create_new_img(post, userInfo, headers)
             image.save(pic_path, 'png')
             
             await bot.send_all_group_msg('[CQ:image,file=wb/{mid}.png]'.format_map(post), uid)
-        else:
-            bot.info(f'用户 {uid} 微博 {post["mid"]} 已存在', 'Weibo')
+        # else:
+        #     bot.info(f'用户 {uid} 微博 {post["mid"]} 已存在', 'Weibo')
 
 
 # 七海Nana7mi 微博监控

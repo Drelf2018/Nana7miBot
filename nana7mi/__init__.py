@@ -41,9 +41,9 @@ class Nana7mi:
                 if not file.startswith('!') and file.endswith('.py'):
                     try:
                         import_module(file.replace('.py', ''))
-                        self.info(f'{file} 加载完成')
+                        self.info(f'{file} 加载完成', id='Nana7mi')
                     except Exception as e:
-                        self.error(f'{file} 加载错误：{e}')
+                        self.error(f'{file} 加载错误：{e}', id='Nana7mi')
             break
 
     async def send_all_group_msg(self, text, id=''):

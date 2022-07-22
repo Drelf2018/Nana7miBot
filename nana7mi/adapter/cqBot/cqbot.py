@@ -76,7 +76,7 @@ class cqBot():
                 js = dumps(cmd, ensure_ascii=False)
                 await self.converse.send(js)
             except Exception as e:
-                self.logger.error('发送失败 '+str(e))
+                self.logger.error(f'发送失败 {e}')
 
     async def send_private_msg(self, user_id: int, text: str):
         await self.send(_private % (int(user_id), str(text)))
