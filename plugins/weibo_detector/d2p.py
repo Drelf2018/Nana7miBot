@@ -19,7 +19,7 @@ def create_new_img(post: dict, userInfo: dict, headers=None, w=1080) -> Image:
     """
 
     # 定义字体
-    font_type = 'merge.ttf'  # 'C:/Windows/Fonts/msyh.ttc'
+    font_type = 'live/HarmonyOS_Sans_SC_Regular.ttf'  # 'C:/Windows/Fonts/msyh.ttc'
     font_blod_type = 'C:/Windows/Fonts/msyhbd.ttc'
     font_song = 'C:/Windows/Fonts/simsun.ttc'
     name_font = ImageFont.truetype(font_blod_type, 100)
@@ -89,7 +89,7 @@ def create_new_img(post: dict, userInfo: dict, headers=None, w=1080) -> Image:
     draw = ImageDraw.Draw(image)
 
     # 背景发卡
-    faka = Image.open(os.path.join(sys.path[0], 'plugins', 'weibo_detector', 'card.png'))
+    faka = Image.open(os.path.join('.', 'plugins', 'weibo_detector', 'card.png'))
     a = Image.new('L', faka.size, 80)  # 透明度 80/255
     i0 = 0
     j0 = 0

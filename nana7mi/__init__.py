@@ -47,7 +47,7 @@ class Nana7mi:
             break
 
     async def send_all_group_msg(self, text, id=''):
-        with open('./ezbot/config.json', 'r', encoding='utf-8') as fp:
+        with open('./nana7mi/config.json', 'r', encoding='utf-8') as fp:
             config = json.load(fp)
         if self.cqbot:
             await self.cqbot.send_private_msg(3099665076, text)

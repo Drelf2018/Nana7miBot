@@ -12,7 +12,7 @@ name = '七海Nana7mi'
 uid = 434334701
 room_id = 21452505
 liveroom = live.LiveDanmaku(room_id)  # 接收弹幕, debug=True
-CQ_PATH = ''
+CQ_PATH = '../nanamiBot'
 
 async def auto_pic():
     try:
