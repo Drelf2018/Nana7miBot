@@ -1,7 +1,9 @@
 import asyncio
 import logging
+from functools import wraps
 from json import dumps
 from typing import List
+
 from aiowebsocket.converses import AioWebSocket
 
 from . import _group, _private
@@ -16,6 +18,7 @@ class cqBot():
 
     def setResponse(self, command=None, limit={}):
         def response_function(func):
+            @wraps(func)
             @Message.on_command(command)
             @Message.limit(**limit)
             async def wrapper(event):
@@ -49,6 +52,7 @@ class cqBot():
     async def run(self):
         recv = await self.connect()
         resp = self.response
+        loop = asyncio.get_event_loop()
         while True:
             mes = await recv()
             event = get_event_from_msg(mes)
@@ -58,11 +62,9 @@ class cqBot():
                 elif event.event_type == 'heartbeat':
                     self.logger.debug('心跳中，将在 '+str(event.interval/1000)+' 秒后下次心跳 ')
             elif isinstance(event, Message):
-                pending = [asyncio.create_task(func(event)) for func in resp]
-                while pending:
-                    done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
-                    for done_task in done:
-                        await self.send(await done_task)
+                for func in resp:
+                    loop.create_task(func(event)).add_done_callback(lambda task: loop.create_task(self.send(task.result())))
+                # ok 了家人们 这是最神奇的一行代码 写出它我都感觉自己贼牛
             else:
                 self.logger.debug(f'收到信息：{mes.decode("utf-8").strip()}')
 
@@ -71,6 +73,9 @@ class cqBot():
             return
         elif isinstance(cmd, str):
             await self.converse.send(cmd)
+        elif isinstance(cmd, (list, tuple)):
+            for c in cmd:
+                await self.converse.send(c)
         else:
             try:
                 js = dumps(cmd, ensure_ascii=False)

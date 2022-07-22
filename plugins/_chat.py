@@ -7,6 +7,7 @@ bot = get_bot()
 # 响应来自 cqbot 的一般消息命令
 @bot.cqbot.setResponse(limit={'at': True})
 async def chat(event: Message):
+    bot.info(event, 'chat')
     url = 'http://api.qingyunke.com/api.php?'
     dic = {
         'key': 'free',

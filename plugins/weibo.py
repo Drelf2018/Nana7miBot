@@ -1,12 +1,11 @@
 ﻿import os
 
-from nana7mi import get_bot
+from nana7mi import get_bot, CQ_PATH
 
 from plugins.weibo_detector.d2p import create_new_img
 from plugins.weibo_detector.weibo import get_data, get_post, get_userInfo, headers
 
 bot = get_bot()
-CQ_PATH = '../nanamiBot'
 
 async def weibo(uid):
     bot.info(f'正在更新用户 {uid} 微博', 'Weibo')

@@ -315,7 +315,12 @@ class Live2Pic:
 
         quotations = [
             '你们会无缘无故的发可爱，就代表哪天无缘无故发恶心',
-            '已经发现很多人是双面人了，彼此放过吧'
+            '已经发现很多人是双面人了，彼此放过吧',
+            '看到这种就很 sad 但是确实是我的错喔',
+            '我选大招我是觉得有用的 我干嘛非得 Q 啊',
+            '你又觉得自己精神胜利了是吧 你是不是散兵啊',
+            '哎呀 那 那你 那没办法 那铁轨总得创死一个人',
+            '我真的怀疑有些人闲的程度啊 实在闲的没事就去把村口的大粪挑了吧'
         ]
 
         t2s = lambda tt: time.strftime('%m/%d %H:%M', time.localtime(tt))
@@ -332,8 +337,8 @@ class Live2Pic:
         total_income = self.liveinfo['send_gift'] + self.liveinfo['guard_buy'] + self.liveinfo['super_chat_message']
 
         basicData = [
-            [('营收：', round(total_income, 2), self.text_color), ('弹幕：', self.liveinfo['total'], self.text_color), ('密度：', str(self.liveinfo['total']*60//(self.liveinfo['sp']-self.liveinfo['st']))+'/min', self.text_color)],
-            [('礼物：', round(self.liveinfo['send_gift'], 2), (255, 168, 180)), ('航海：', round(self.liveinfo['guard_buy'], 2), (132, 212, 155)), ('醒目留言：', round(self.liveinfo['super_chat_message'], 2), (74, 194, 246))],
+            [('营收：', round(total_income, 2), self.text_color), ('弹幕：', self.liveinfo['total'], self.text_color), ('密度：', str(self.liveinfo['total']*60//(self.liveinfo['sp']-self.liveinfo['st']))+' / min', self.text_color)],
+            [('礼物：', round(self.liveinfo['send_gift'], 2), (255, 168, 180)), ('大航海：', round(self.liveinfo['guard_buy'], 2), (132, 212, 155)), ('醒目留言：', round(self.liveinfo['super_chat_message'], 2), (74, 194, 246))],
         ]
 
         for i, rows in enumerate(basicData):  # 写“基础数据”文字
@@ -360,7 +365,7 @@ class Live2Pic:
 
         self.bg.paste(body, (935-w//2, 20), mask=a)
 
-        card = Image.open(f'{self.folder}card{randint(0,1)}.png')
+        card = Image.open(f'{self.folder}card{randint(0, 3)}.png')
         card = card.resize((100, 100), Image.ANTIALIAS)
         self.bg.paste(card, (20, 1400), mask=card.getchannel('A'))
 

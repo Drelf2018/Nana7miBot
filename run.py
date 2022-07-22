@@ -1,18 +1,38 @@
-﻿from nana7mi import get_bot, cqBot
-import asyncio
+﻿import asyncio
+import os
+import re
+
 import httpx
+
+from nana7mi import CQ_PATH, Headers, cqBot, get_bot
+from nana7mi.adapter.cqBot.event import Message
 
 bot = get_bot(cqbot=cqBot())
 
 # 响应来自 cqbot 的回声命令
 @bot.cqbot.setResponse(command='/echo')
-async def echo(event):
+async def echo(event: Message):
+    bot.info(str(event), 'echo')
     return event.reply(' '.join(event.args).replace('&#91;', '[').replace('&#93;', ']'))
 
 # 响应来自 cqbot 的大图命令
 @bot.cqbot.setResponse(command='/big')
-async def big(event):
-    return event.reply(' '.join(event.args).replace(',subType=0', '').replace('CQ:image', 'CQ:cardimage').replace('&#91;', '[').replace('&#93;', ']'))
+async def big(event: Message):
+    pics = re.findall(r'[A-Za-z0-9]+\.image', str(event))
+    urls = []
+    async with httpx.AsyncClient(headers=Headers) as session:
+        for pic in pics:
+            with open(os.path.join(CQ_PATH, 'data', 'images', pic), 'rb') as f:
+                content = f.read()
+                pos = content.find(b'http')
+                url = content[pos:].decode('utf-8')
+                r = await session.get(url)
+                content = r.read()
+                file = pic.replace('.image', '.png')
+                with open(os.path.join(CQ_PATH, 'data', 'images', file), 'wb') as fp:
+                    fp.write(content)
+                urls.append(f'[CQ:cardimage,file={file}]')
+    return event.reply(urls)
 
 
 class Online:

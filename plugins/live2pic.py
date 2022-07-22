@@ -1,18 +1,16 @@
 ﻿import time
 
 from bilibili_api import live
-from nana7mi import get_bot
+from nana7mi import CQ_PATH, get_bot
 from nana7mi.adapter.cqBot.event import Message
 
-from plugins.live_pic.live2pic import Live2Pic
-
+from plugins._live2pic import Live2Pic
 
 bot = get_bot()
 name = '七海Nana7mi'
 uid = 434334701
 room_id = 21452505
 liveroom = live.LiveDanmaku(room_id)  # 接收弹幕, debug=True
-CQ_PATH = '../nanamiBot'
 
 async def auto_pic():
     try:
@@ -46,16 +44,22 @@ async def preparing(event):
         await bot.send_all_group_msg('生成直播场报失败', id='live')
 
 
+start_time: int = 0
+
 # 开播/直播中
 @liveroom.on('LIVE')
 async def send_live_info(event):
-    room = live.LiveRoom(room_id)
-    info = await room.get_room_info()
-    name = info['anchor_info']['base_info']['uname']
-    title = info['room_info']['title']
-    area = info['room_info']['area_name']
-    cover = info['room_info']['cover']
-    await bot.send_all_group_msg(f'{name} 正在 {area} 分区直播\n标题：{title}[CQ:image,file={cover}]', id='live')
+    global start_time
+    tt = time.time()
+    if tt - start_time > 300:
+        start_time = tt
+        room = live.LiveRoom(room_id)
+        info = await room.get_room_info()
+        name = info['anchor_info']['base_info']['uname']
+        title = info['room_info']['title']
+        area = info['room_info']['area_name']
+        cover = info['room_info']['cover']
+        await bot.send_all_group_msg(f'{name} 正在 {area} 分区直播\n标题：{title}[CQ:image,file={cover}]', id='live')
 
 
 # 重启监听
