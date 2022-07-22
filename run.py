@@ -23,10 +23,10 @@ class Online:
         async with httpx.AsyncClient() as session:
             resp = await session.get(self.url)
         js = resp.json()
-        for key1 in js['Data']['Cards']:
-            for key2 in key1['CardGroup']:
-                if key2['CardType'] == "30":
-                    return key2['Desc1']
+        for key1 in js['data']['cards']:
+            for key2 in key1['card_group']:
+                if key2['card_type'] == "30":
+                    return key2['desc1']
     
     async def check(self):
         try:
