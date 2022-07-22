@@ -131,7 +131,7 @@ def create_new_img(post: dict, userInfo: dict, headers=None, w=1080) -> Image:
     draw.rectangle([(0.912*w, 0.312*w+now_height[-1][0]+now_pic_height), (0.9405*w, 0.3405*w+now_height[-1][0]+now_pic_height)], fill='white')
 
     # 二维码
-    url = 'https://m.weibo.com/' + userInfo['id'] + '/' + post['mid']
+    url = 'https://m.weibo.com/' + str(userInfo['id']) + '/' + post['mid']
     draw.text((int(0.05*w), int(now_height[-1][0]+0.42*w+now_pic_height+th)), '扫描二维码查看这条动态', '#666666', text_font)
     draw.text((int(0.05*w), int(now_height[-1][0]+0.47*w+now_pic_height+th)), url, '#bebebe', url_font)
     qrimg = qrcode.make(url).resize((int(0.16*w), int(0.16*w)), Image.ANTIALIAS)
