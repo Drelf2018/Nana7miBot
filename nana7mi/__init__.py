@@ -71,7 +71,7 @@ class Nana7mi:
             cqSend = self.cqbot.send_group_msg
             await asyncio.wait([
                 asyncio.create_task(cqSend(group_id, text))
-                    for group_id in groups_list.get(id, groups_list['default'])
+                    for group_id in groups_list.get(str(id), groups_list['default'])
             ])
 
     async def run(self):
