@@ -53,4 +53,4 @@ async def weibo(uid):
 
 
 # 七海Nana7mi 微博监控
-bot.sched.add_job(weibo, 'interval', seconds=10, next_run_time=bot.run_time(10), args=['7198559139'])
+bot.sched.add_job(weibo, 'interval', seconds=10, next_run_time=bot.run_time(10), args=[7198559139])

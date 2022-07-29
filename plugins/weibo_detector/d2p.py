@@ -89,7 +89,7 @@ def create_new_img(post: dict, userInfo: dict, headers=None, w=1080) -> Image:
     draw = ImageDraw.Draw(image)
 
     # 背景发卡
-    faka = Image.open(os.path.join('.', 'plugins', 'weibo_detector', 'card.png'))
+    faka = Image.open(os.path.join(os.path.dirname(__file__), 'card.png'))
     a = Image.new('L', faka.size, 80)  # 透明度 80/255
     i0 = 0
     j0 = 0
