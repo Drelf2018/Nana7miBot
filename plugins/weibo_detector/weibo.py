@@ -69,19 +69,16 @@ def get_post(data, n: int):
             alt, src = _img.xpath('./@alt')[0], _img.xpath('./@src')[0]
             text = text.replace(
                 f'<span class="url-icon"><img alt="{alt}" src="{src}" style="width:1em; height:1em;" /></span>',
-                alt
+                f'[{src}]'
             )
         for _a in span.xpath('.//a'):
             href = _a.xpath('./@href')[0].replace('&', '&amp;')
             atext = _a.xpath('./text()')[0]
             text = text.replace(f'<a href="{href}">{atext}</a>', atext)
         text = text.replace('<br />', '\n').replace('<span class="ctt">', '').replace('</span>', '')
-        dot = len(text)
-        for i in range(dot, 0, -1):
-            if not text[i-1] == ' ':
-                dot = i
-                break
-        return text[:dot]
+        text = text.replace('[开学季]', '[https://face.t.sinajs.cn/t4/appstyle/expression/ext/normal/72/2021_kaixueji_org.png]')
+        text = text.replace('[融化]', '[https://face.t.sinajs.cn/t4/appstyle/expression/ext/normal/53/2022_melt_org.png]')
+        return text.strip()
 
     # 博文过长 更换网址进行爬取
     murl = post.xpath('.//a[contains(text(), "全文")]/@href')

@@ -1,11 +1,13 @@
 ﻿import os
+import asyncio
 
-from nana7mi import get_bot, CQ_PATH
+if __name__ != '__main__':
+    from nana7mi import get_bot, CQ_PATH
+    bot = get_bot()
+    from plugins.weibo_detector.d2p import create_new_img
+    from plugins.weibo_detector.weibo import get_data, get_post, get_userInfo, headers
 
-from plugins.weibo_detector.d2p import create_new_img
-from plugins.weibo_detector.weibo import get_data, get_post, get_userInfo, headers
 
-bot = get_bot()
 
 async def weibo(uid):
     bot.info(f'正在更新用户 {uid} 微博', 'Weibo')
@@ -44,13 +46,28 @@ async def weibo(uid):
             await bot.send_all_group_msg(msg, uid)
             
             # 图片版
-            image = create_new_img(post, userInfo, headers)
+            image = await create_new_img(post, userInfo, headers)
             image.save(pic_path, 'png')
             
             await bot.send_all_group_msg('[CQ:image,file=wb/{mid}.png]'.format_map(post), uid)
         # else:
         #     bot.info(f'用户 {uid} 微博 {post["mid"]} 已存在', 'Weibo')
 
+if __name__ != '__main__':
+    # 七海Nana7mi 微博监控
+    bot.sched.add_job(weibo, 'interval', seconds=10, next_run_time=bot.run_time(10), args=[7198559139])
+    # 古戸絵梨花 微博监控
+    bot.sched.add_job(weibo, 'interval', seconds=10, next_run_time=bot.run_time(15), args=[1765893783])
 
-# 七海Nana7mi 微博监控
-bot.sched.add_job(weibo, 'interval', seconds=10, next_run_time=bot.run_time(10), args=[7198559139])
+async def main():
+    from weibo_detector.weibo import get_data, get_post, get_userInfo, headers
+    data = get_data(7198559139)
+    post = get_post(data, 1)
+    userInfo = get_userInfo(7198559139)
+
+    from weibo_detector.d2p2 import create_new_img as cni
+    image = await cni(post, userInfo, headers)
+    image.show()
+
+if __name__ == '__main__':
+    asyncio.run(main())
