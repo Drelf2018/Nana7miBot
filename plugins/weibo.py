@@ -53,21 +53,5 @@ async def weibo(uid):
         # else:
         #     bot.info(f'用户 {uid} 微博 {post["mid"]} 已存在', 'Weibo')
 
-if __name__ != '__main__':
-    # 七海Nana7mi 微博监控
-    bot.sched.add_job(weibo, 'interval', seconds=10, next_run_time=bot.run_time(10), args=[7198559139])
-    # 古戸絵梨花 微博监控
-    bot.sched.add_job(weibo, 'interval', seconds=10, next_run_time=bot.run_time(15), args=[1765893783])
-
-async def main():
-    from weibo_detector.weibo import get_data, get_post, get_userInfo, headers
-    data = get_data(7198559139)
-    post = get_post(data, 1)
-    userInfo = get_userInfo(7198559139)
-
-    from weibo_detector.d2p2 import create_new_img as cni
-    image = await cni(post, userInfo, headers)
-    image.show()
-
-if __name__ == '__main__':
-    asyncio.run(main())
+# 七海Nana7mi 微博监控
+bot.sched.add_job(weibo, 'interval', seconds=10, next_run_time=bot.run_time(10), args=[7198559139])
