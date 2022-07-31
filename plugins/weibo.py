@@ -1,13 +1,13 @@
 ﻿import os
-import asyncio
+import time
 
-if __name__ != '__main__':
-    from nana7mi import get_bot, CQ_PATH
-    bot = get_bot()
-    from plugins.weibo_detector.d2p import create_new_img
-    from plugins.weibo_detector.weibo import get_data, get_post, get_userInfo, headers
+from nana7mi import CQ_PATH, get_bot
+from nana7mi.adapter.cqBot import Message
 
+from plugins.weibo_detector.d2p import create_new_img
+from plugins.weibo_detector.weibo import get_data, get_post, get_userInfo, headers
 
+bot = get_bot()
 
 async def weibo(uid):
     bot.info(f'正在更新用户 {uid} 微博', 'Weibo')
@@ -55,3 +55,17 @@ async def weibo(uid):
 
 # 七海Nana7mi 微博监控
 bot.sched.add_job(weibo, 'interval', seconds=10, next_run_time=bot.run_time(10), args=[7198559139])
+# 古戸絵梨花 微博监控
+bot.sched.add_job(weibo, 'interval', seconds=10, next_run_time=bot.run_time(15), args=[1765893783])
+
+# 响应来自 cqbot 的回声命令
+@bot.cqbot.setResponse(command='/weibo')
+async def getWeibo(event: Message):
+    data = get_data(7198559139)
+    post = get_post(data, 2)
+    userInfo = get_userInfo(7198559139)
+    image = await create_new_img(post, userInfo, headers)
+    tt = int(time.time())
+    pic_path = CQ_PATH + '/data/images/wb/'+str(tt)+'.png'
+    image.save(pic_path)
+    return event.reply(f'[CQ:image,file=wb/{tt}.png]')
