@@ -1,8 +1,15 @@
-from re import I
+import asyncio
+from io import BytesIO
 from typing import List
 
+import httpx
 from PIL import Image, ImageDraw
-from PIL.ImageFont import truetype, FreeTypeFont
+from PIL.ImageFont import FreeTypeFont, truetype
+
+if __name__ == '__main__':
+    from emoji import Emoji, getEmojiImg
+else:
+    from .emoji import Emoji, getEmojiImg
 
 
 class Font:
@@ -61,10 +68,7 @@ class TextManager:
                 width[i], height[i] = self.font.getsize(self.text[:i])
             return width, height
 
-    def __init__(self, content: list) -> None:
-        self.setContent(content)
-
-    def setContent(self, content) -> None:
+    async def setContent(self, content) -> 'TextManager':
         self.Content = []
         for c in content:
             if isinstance(c, tuple):
@@ -77,11 +81,31 @@ class TextManager:
                             self.Content.append(self.Text(text[last:now], *args))
                         self.Content.append('#')
                         last = now + 1
+                    elif Emoji.get(text[now]):
+                        if last != now:
+                            self.Content.append(self.Text(text[last:now], *args))
+                        self.Content.append(await getEmojiImg(text[now]))
+                        last = now + 1
+                    elif text[now] == '[':
+                        if last != now:
+                            self.Content.append(self.Text(text[last:now], *args))
+                        last = now + 1
+                    elif text[now] == ']':
+                        if last != now:
+                            if text[last:now].startswith('http') and text[last:now].endswith('.png'):
+                                response = httpx.get(text[last:now])  # 请求图片
+                                im = Image.open(BytesIO(response.content)).convert('RGBA')  # 读取图片
+                                self.Content.append(im)
+                            else:
+                                self.Content.append(self.Text(text[last:now+1], *args))
+                        last = now + 1
                     now += 1
                 else:
-                    self.Content.append(self.Text(text[last:now], *args))
+                    if last != now:
+                        self.Content.append(self.Text(text[last:now], *args))
             else:
                 self.Content.append(c)
+        return self
 
     def print(self):
         for c in self.Content:
@@ -95,21 +119,27 @@ class TextManager:
             if c == '#':
                 x = 0
                 y += line_height
+                line_height = 3
             elif isinstance(c, Image.Image):
+                flag = False
+                if c.height in [16, 64]:
+                    flag = True
+                    c = c.resize((int(line_height/1.1), int(line_height/1.1)), Image.ANTIALIAS)
                 w, h = c.size
                 if limit - x < w:
                     x = 0
                     y += line_height
-                    line_height = 1.333 * h
+                    line_height = h * (1.1 if flag else 1)
                 else:
-                    line_height = max(line_height, 1.333 * h)
-
-                im.paste(c, (x, y), mask=c.getchannel('A'))
+                    line_height = max(line_height, h * (1.1 if flag else 1))
+                im.paste(c, (int(x), int(y-(0.14*line_height if flag else 0))), mask=c.getchannel('A'))
                 x += w
             elif isinstance(c, self.Text):
                 pos = c.getMaxPos(limit-x)
-                draw.text((x, y), c.text[:pos], c.color, c.font)
                 w, h = c.getSize(pos)
+                if y == 0:
+                    y = 0.333 * h
+                draw.text((x, y), c.text[:pos], c.color, c.font)
                 x += w
                 line_height = max(line_height, 1.333 * h)
                 while pos != len(c):
@@ -124,15 +154,22 @@ class TextManager:
                     line_height = max(line_height, 1.333 * h)
                     pos = rpos
 
-        return im.crop((0, 0, limit, y+line_height))
+        return im.crop((0, 0, limit, y + (line_height if x else 0)))
 
-tm = TextManager([
-    ('1\n2\n\n3\n\n\nho\nmo\n来了', '#FF0000', 90, Font.homo),
-    ('456', '#00FF00', 90, Font.homo),
-    '#',
-    ('二十一个字二十一个字二十一个字二十一哈哈了', '#0000FF', 90, Font.homo)
-])
-im = tm.paste(960)
-bg = Image.new('RGB', im.size, '#FFFFFF')
-bg.paste(im, mask=im.getchannel('A'))
-bg.show()
+
+async def main():
+    im = (await TextManager().setContent([
+        ('123homo来了', '#FF0000', 90, Font.homo),
+        ('456😎😀😁😂🤣', '#00FF00', 20, Font.homo),
+        '#',
+        ('', '#00FF00', 30, Font.homo),
+        ('二十一个字二十一个字二十一个字二十一哈哈了', '#0000FF', 45, Font.homo)
+    ])).paste(960)
+
+    bg = Image.new('RGB', im.size, '#F5F5F7')
+    bg.paste(im, mask=im.getchannel('A'))
+    bg.show()
+
+
+if __name__ == '__main__':
+    asyncio.run(main())
