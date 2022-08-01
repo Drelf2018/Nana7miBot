@@ -1,5 +1,4 @@
 ﻿import time
-from tkinter import E
 
 from bilibili_api import live
 from nana7mi import CQ_PATH, get_bot
