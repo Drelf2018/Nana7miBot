@@ -4,11 +4,15 @@ import json
 import logging
 import os
 import sys
+import os
+import re
+
+import httpx
 from importlib import import_module
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-from .adapter.cqBot import cqBot
+from .adapter.cqBot import cqBot, Message
 
 CQ_PATH = 'C:/Users/drelf/Desktop/nanamiBot'
 Headers = {
@@ -64,6 +68,33 @@ class Nana7mi:
                         self.error(f'{file} 加载错误：{e}', id='Nana7mi')
             break
 
+    def load_buildin_plugins(self):
+        if self.cqbot:
+            # 响应来自 cqbot 的回声命令
+            @self.cqbot.setResponse(command='/echo')
+            async def echo(event: Message):
+                self.info(str(event), 'echo')
+                return event.reply(' '.join(event.args).replace('&#91;', '[').replace('&#93;', ']'))
+
+            # 响应来自 cqbot 的大图命令
+            @self.cqbot.setResponse(command='/big')
+            async def big(event: Message):
+                pics = re.findall(r'[A-Za-z0-9]+\.image', str(event))
+                urls = []
+                async with httpx.AsyncClient(headers=Headers) as session:
+                    for pic in pics:
+                        with open(os.path.join(CQ_PATH, 'data', 'images', pic), 'rb') as f:
+                            content = f.read()
+                            pos = content.find(b'http')
+                            url = content[pos:].decode('utf-8')
+                            r = await session.get(url)
+                            content = r.read()
+                            file = pic.replace('.image', '.png')
+                            with open(os.path.join(CQ_PATH, 'data', 'images', file), 'wb') as fp:
+                                fp.write(content)
+                            urls.append(f'[CQ:cardimage,file={file}]')
+                return event.reply(urls)
+
     async def send_all_group_msg(self, text, id=''):
         with open('./nana7mi/config.json', 'r', encoding='utf-8') as fp:
             config = json.load(fp)
@@ -85,7 +116,7 @@ class Nana7mi:
 __the_only_one_bot = None
 
 
-def get_bot(cqbot=None, khlbot=None, bilibot=None):
+def get_bot(cqbot: cqBot = None, khlbot=None, bilibot=None) -> Nana7mi:
     global __the_only_one_bot
     if not __the_only_one_bot:
         __the_only_one_bot = Nana7mi(cqbot, khlbot, bilibot)

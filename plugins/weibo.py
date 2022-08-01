@@ -18,8 +18,8 @@ async def weibo(uid):
         bot.error(f'更新用户 {uid} 微博失败 {e}', 'Weibo')
         return
 
-    for i in range(1, 5):
-        # 爬取前4条
+    for i in range(1, 4):
+        # 爬取前 3 条
         try:
             post = get_post(data, i)
         except Exception as e:
@@ -55,10 +55,8 @@ async def weibo(uid):
 
 # 七海Nana7mi 微博监控
 bot.sched.add_job(weibo, 'interval', seconds=10, next_run_time=bot.run_time(10), args=[7198559139])
-# 古戸絵梨花 微博监控
-bot.sched.add_job(weibo, 'interval', seconds=10, next_run_time=bot.run_time(15), args=[1765893783])
 
-# 响应来自 cqbot 的回声命令
+# 响应来自 cqbot 的微博命令
 @bot.cqbot.setResponse(command='/weibo')
 async def getWeibo(event: Message):
     data = get_data(7198559139)
