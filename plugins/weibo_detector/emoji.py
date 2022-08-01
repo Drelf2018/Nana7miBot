@@ -27,15 +27,15 @@ Url: str = js['url']
 Emoji: dict = js['emoji']
 
 async def getEmojiImg(text: str) -> Image.Image:
-    filepath = os.path.join(BASEPATH, 'emoji', Emoji.get(text) + '.png')
+    filepath = f'{BASEPATH}\\emoji{Emoji.get(text)}.png'
     if os.path.exists(filepath):
-        return Image.open(filepath)
+        return Image.open(filepath).convert('RGBA')
     async with httpx.AsyncClient() as session:
         resp = await session.get(Url+Emoji.get(text))
     html = etree.HTML(resp.content)
     src = html.xpath('.//tr[2]/td/img/@src')[0]
     data = base64.urlsafe_b64decode(src.replace('data:image/png;base64,', ''))
-    img = Image.open(BytesIO(data))
+    img = Image.open(BytesIO(data)).convert('RGBA')
     img.save(filepath, 'png')
     return img
 

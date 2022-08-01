@@ -1,13 +1,13 @@
 import os
-import sys
 import qrcode
-import requests
+import httpx
 from math import ceil
 from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
+from .TextManager import TextManager, Font
 
 
-def create_new_img(post: dict, userInfo: dict, headers=None, w=1080) -> Image:
+async def create_new_img(post: dict, userInfo: dict, headers=None, w=1080) -> Image.Image:
     """
     根据微博博文生成图片
     Args:
@@ -29,55 +29,22 @@ def create_new_img(post: dict, userInfo: dict, headers=None, w=1080) -> Image:
     # 人为规定一行写 21 个字好看，测量这 21 个字的长度
     # 再根据设定图片宽度 w 乘预设系数 text_width 调整字号
     tw, th = text_font.getsize('我不动脑子随手一写就是标标准准的二十一个字')
-    text_font = ImageFont.truetype(font_type, int(100*text_width*w/tw))
+    size = int(100*text_width*w/tw)
+    text_font = ImageFont.truetype(font_type, size)
+    content = [
+        (post.get('repo'), '#1D1D1F', size, Font.homo),
+        (post.get('text'), '#1D1D1F', size, Font.homo)
+    ]
 
-    # 将整段文本分成一行行
-    split_num = 0
-    now_str = ''
-    now_height = [[0]]  # 列表中包含多个梓列表，子列表表示这行字所处高度(像素值)以及这行文本内容
-    if post.get('repo'):
-        for chn in post['repo']:
-            # 每次新增一个文字 如果超过线宽 就把之前的文字存起来
-            if chn == '\n' or text_font.getsize(now_str+chn)[0] > text_width*w:
-                now_height[-1].append(now_str)
-                if not chn == '\n':
-                    now_str = chn
-                else:
-                    now_str = ''
-                now_height.append([now_height[-1][0] + text_font.getsize(now_str+chn)[1] + 10])
-            else:
-                now_str += chn
-        now_height[-1].append(now_str)
-        now_height.append([now_height[-1][0] + text_font.getsize(now_str+chn)[1] + 15])
-        now_str = ''
-        split_num = len(now_height) - 1
-
-    for chn in post.get('text'):
-        # 每次新增一个文字 如果超过线宽 就把之前的文字存起来
-        if chn == '\n' or text_font.getsize(now_str+chn)[0] > text_width*w:
-            now_height[-1].append(now_str)
-            if not chn == '\n':
-                now_str = chn
-            else:
-                now_str = ''
-            now_height.append([now_height[-1][0] + text_font.getsize(now_str+chn)[1] + 10])
-        else:
-            now_str += chn
-    now_height[-1].append(now_str)
-    now_height.append([now_height[-1][0] + text_font.getsize(now_str+chn)[1]])
-
-    # 加载博文中的图片
-    picHeight = 0  # 记录这些图片总和高度
-    pics = []
-    for pic in post.get('picUrls'):
-        try:
-            response = requests.get(pic, headers=headers)  # 请求图片
-            bg = Image.open(BytesIO(response.content))  # 读取图片
-            bg = bg.resize((int(text_width*w), int(bg.height*text_width*w/bg.width)), Image.ANTIALIAS)  # 调整大小
-            picHeight += bg.height + 3
-            pics.append(bg)
-        except Exception:
-            print('[weibo-d2p] [ERROR]: 图片加载错误', pic)
+    async with httpx.AsyncClient(headers=headers) as session:
+        for pic in post.get('picUrls'):
+            try:
+                resp = await session.get(pic)  # 请求图片
+                bg = Image.open(BytesIO(resp.content)).convert('RGBA')  # 读取图片
+                bg = bg.resize((int(text_width*w), int(bg.height*text_width*w/bg.width)), Image.ANTIALIAS)  # 调整大小
+                content.append(bg)
+            except Exception as e:
+                print('[ERROR]: 图片加载错误', e, pic)
 
     # 测量 发送时间以及设备 文本的高宽
     url_font = ImageFont.truetype(font_type, int(75*text_width*w/tw))
@@ -85,7 +52,8 @@ def create_new_img(post: dict, userInfo: dict, headers=None, w=1080) -> Image:
     tw, th = url_font.getsize(s)
 
     # 新建底片用以书写内容
-    image = Image.new("RGB", (w, int(now_height[-1][0]+0.55*w+picHeight+th+20)), (255, 255, 255))
+    im = (await TextManager().setContent(content)).paste(text_width*w)
+    image = Image.new("RGB", (w, int(im.height+0.55*w+th)), (255, 255, 255))
     draw = ImageDraw.Draw(image)
 
     # 背景发卡
@@ -101,44 +69,28 @@ def create_new_img(post: dict, userInfo: dict, headers=None, w=1080) -> Image:
     draw.rectangle([(0.05*w, 0.28*w), (0.088*w, 0.318*w)], fill='black')
     draw.rectangle([(0.0595*w, 0.2895*w), (0.088*w, 0.318*w)], fill='white')
 
-    # 逐行书写博文
-    if post.get('repo'):
-        draw.rectangle([
-            (int((1-text_width)/2*w-10), int(0.315*w+now_height[split_num][0]-10)),
-            (int((1+text_width)/2*w+10), int(0.315*w+now_height[-1][0]))
-        ], fill='#f9f9f9')
-        draw.line([
-            (int((1-text_width)/2*w-10), int(0.315*w+now_height[split_num][0]-10)),
-            (int((1+text_width)/2*w+10), int(0.315*w+now_height[split_num][0]-10))
-        ], fill='black', width=3)
-    for t in now_height[:-1]:
-        draw.text((int((1-text_width)/2*w), int(0.315*w+t[0])), t[1], '#343434', text_font)
-
-    # 图片
-    now_pic_height = 23
-    for pic in pics:
-        image.paste(pic, (int((1-text_width)/2*w), int(0.315*w+now_height[-1][0]+now_pic_height)))  # 粘贴至背景
-        now_pic_height += pic.height + 3
+    # 粘贴文字
+    image.paste(im, (int(0.1*w), int(0.315*w)), mask=im.getchannel('A'))
 
     # 写发送时间
-    draw.text((0.95*w-tw, 0.35*w+now_height[-1][0]+now_pic_height+10), s, '#bebebe', url_font)
+    draw.text((0.95*w-tw, 0.35*w+im.height+15), s, '#bebebe', url_font)
 
     # 二维码区域背景
-    draw.rectangle([(0, int(now_height[-1][0]+0.37*w+now_pic_height+th)), (w, int(now_height[-1][0]+0.55*w+now_pic_height+th))], fill='#f9f9f9')
+    draw.rectangle([(0, int(im.height+0.37*w+th)), (w, int(im.height+0.55*w+th))], fill='#f9f9f9')
 
     # 右下角黑框
-    draw.rectangle([(0.912*w, 0.312*w+now_height[-1][0]+now_pic_height), (0.95*w, 0.35*w+now_height[-1][0]+now_pic_height)], fill='black')
-    draw.rectangle([(0.912*w, 0.312*w+now_height[-1][0]+now_pic_height), (0.9405*w, 0.3405*w+now_height[-1][0]+now_pic_height)], fill='white')
+    draw.rectangle([(0.912*w, 0.312*w+im.height), (0.95*w, 0.35*w+im.height)], fill='black')
+    draw.rectangle([(0.912*w, 0.312*w+im.height), (0.9405*w, 0.3405*w+im.height)], fill='white')
 
     # 二维码
     url = 'https://m.weibo.com/' + str(userInfo['id']) + '/' + post['mid']
-    draw.text((int(0.05*w), int(now_height[-1][0]+0.42*w+now_pic_height+th)), '扫描二维码查看这条动态', '#666666', text_font)
-    draw.text((int(0.05*w), int(now_height[-1][0]+0.47*w+now_pic_height+th)), url, '#bebebe', url_font)
+    draw.text((int(0.05*w), int(im.height+0.43*w+th)), '扫描二维码查看这条动态', '#666666', text_font)
+    draw.text((int(0.05*w), int(im.height+0.48*w+th)), url, '#bebebe', url_font)
     qrimg = qrcode.make(url).resize((int(0.16*w), int(0.16*w)), Image.ANTIALIAS)
-    image.paste(qrimg, (int(0.83*w), int(now_height[-1][0]+0.38*w+now_pic_height+th)))
+    image.paste(qrimg, (int(0.83*w), int(im.height+0.38*w+th)))
 
     # 头像
-    response = requests.get(userInfo['face'])  # 请求图片
+    response = httpx.get(userInfo['face'])  # 请求图片
     face = Image.open(BytesIO(response.content))  # 读取图片
     a = Image.new('L', face.size, 0)  # 创建一个黑色背景的画布
     ImageDraw.Draw(a).ellipse((0, 0, a.width, a.height), fill=255)  # 画白色圆形
@@ -157,7 +109,7 @@ def create_new_img(post: dict, userInfo: dict, headers=None, w=1080) -> Image:
 
     # 博主个性签名
     desc_font = ImageFont.truetype(font_song, int(12*w/nh))
-    draw.text((int(0.015*w), int(0.21*w)), '“', '#787878', desc_font)
+    draw.text((int(0.015*w), int(0.205*w)), '“', '#787878', desc_font)
     dw, dh = desc_font.getsize('“')
     draw.text((int(0.015*w+dw), int(0.225*w)), userInfo['desc'], '#666666', follow_font)
 

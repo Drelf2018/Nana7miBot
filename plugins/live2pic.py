@@ -1,4 +1,5 @@
 ﻿import time
+from tkinter import E
 
 from bilibili_api import live
 from nana7mi import CQ_PATH, get_bot
@@ -65,5 +66,8 @@ async def send_live_info(event):
 # 重启监听
 @bot.sched.scheduled_job('interval', id='reconnection', hours=1, next_run_time=bot.run_time(0)) 
 async def reconnection():
-    await liveroom.disconnect()
+    try:
+        await liveroom.disconnect()
+    except Exception:
+        ...
     await liveroom.connect()

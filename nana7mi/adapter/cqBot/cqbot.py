@@ -15,6 +15,7 @@ class cqBot():
     handler = logging.StreamHandler()
     handler.setFormatter(logging.Formatter("[%(asctime)s] [%(levelname)s] [cqBot] %(message)s", '%H:%M:%S'))
     logger.addHandler(handler)
+    func_params = dict()
 
     def setResponse(self, command=None, limit={}):
         def response_function(func):
@@ -24,6 +25,7 @@ class cqBot():
             async def wrapper(event):
                 return await func(event)
             self.response.append(wrapper)
+            self.func_params[wrapper] = (command, limit)
             return wrapper
         return response_function
 
