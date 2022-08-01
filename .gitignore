@@ -153,3 +153,4 @@ cython_debug/
 
 plugins/xapi.py
 nana7mi/config.json
+go-cqhttp

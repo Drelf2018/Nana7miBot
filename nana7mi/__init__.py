@@ -10,7 +10,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from .adapter.cqBot import cqBot
 
-CQ_PATH = 'C:/Users/drelf/Desktop/nanamiBot'
+CQ_PATH = './go-cqhttp'
 Headers = {
     'Connection': 'keep-alive',
     'Accept-Language': 'zh-CN,zh;q=0.9',
