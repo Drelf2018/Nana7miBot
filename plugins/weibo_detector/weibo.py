@@ -1,5 +1,6 @@
 import re
 import requests
+import asyncio
 from lxml import etree
 
 
@@ -14,7 +15,7 @@ headers = {
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
     'Upgrade-Insecure-Requests': '1',
     'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.62 Safari/537.36',
-    'cookie': '_T_WM=2476121349a3d8c9baafccd04e173738; SUB=_2A25PkZ5NDeRhGeFM7lQU8i7PyjmIHXVtfSIFrDV6PUJbktCOLRbmkW1NQNxRTwggFvoPL-1_DHi8C53_T7KPuHtn; SUBP=0033WrSXqPxfM725Ws9jqgMF55529P9D9WWsM7qnLH5XXeUsRC8WX5b75NHD95QNeo-cSKz7e02fWs4DqcjPi--RiKnXiKnci--4i-zEi-2ReKzpe0nt; SSOLoginState=1653992990'
+    'cookie': 'SCF=Ao_CfNDAVoOOnPeRbWYncYwIxkt1qdMnP8GJwYAFUbdV2AwNmv18NfGuAVLGkp_al91dOQIJTvviNKRX_WnQV0I.; SUB=_2A25P0FJVDeRhGeFM7lQU8i7PyjmIHXVtO34drDV6PUJbktCOLRHBkW1NQNxRTyundxN1rIEaDb8vuDu9LX1y2PfV; SUBP=0033WrSXqPxfM725Ws9jqgMF55529P9D9WWsM7qnLH5XXeUsRC8WX5b75NHD95QNeo-cSKz7e02fWs4DqcjPi--RiKnXiKnci--4i-zEi-2ReKzpe0nt; _T_WM=b7e06bb363bcddabb34f5e7aba1d13f8'
 }
 
 
@@ -119,7 +120,13 @@ def get_post(data, n: int):
     return info
 
 
-if __name__ == '__main__':
+async def main():
     data = get_data(7198559139)
-    post = get_post(data, 1)
-    # print(post)
+    post = get_post(data, 2)
+    userInfo = get_userInfo(7198559139)
+    from d2p import create_new_img
+    img = await create_new_img(post, userInfo, headers)
+    img.show()
+
+if __name__ == '__main__':
+    asyncio.run(main())

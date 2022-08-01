@@ -6,10 +6,10 @@ import httpx
 from PIL import Image, ImageDraw
 from PIL.ImageFont import FreeTypeFont, truetype
 
-if __name__ == '__main__':
-    from emoji import Emoji, getEmojiImg
-else:
+try:
     from .emoji import Emoji, getEmojiImg
+except Exception:
+    from emoji import Emoji, getEmojiImg
 
 
 class Font:
@@ -122,7 +122,7 @@ class TextManager:
                 line_height = 3
             elif isinstance(c, Image.Image):
                 flag = False
-                if c.height in [16, 64]:
+                if c.height in [16, 64, 72]:
                     flag = True
                     c = c.resize((int(line_height/1.1), int(line_height/1.1)), Image.ANTIALIAS)
                 w, h = c.size

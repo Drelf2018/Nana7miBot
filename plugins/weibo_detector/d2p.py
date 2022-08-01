@@ -1,10 +1,13 @@
 import os
 import qrcode
-import httpx
+import requests
 from math import ceil
 from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
-from .TextManager import TextManager, Font
+try:
+    from .TextManager import TextManager, Font
+except Exception:
+    from TextManager import TextManager, Font
 
 
 async def create_new_img(post: dict, userInfo: dict, headers=None, w=1080) -> Image.Image:
@@ -36,15 +39,15 @@ async def create_new_img(post: dict, userInfo: dict, headers=None, w=1080) -> Im
         (post.get('text'), '#1D1D1F', size, Font.homo)
     ]
 
-    async with httpx.AsyncClient(headers=headers) as session:
-        for pic in post.get('picUrls'):
-            try:
-                resp = await session.get(pic)  # 请求图片
-                bg = Image.open(BytesIO(resp.content)).convert('RGBA')  # 读取图片
-                bg = bg.resize((int(text_width*w), int(bg.height*text_width*w/bg.width)), Image.ANTIALIAS)  # 调整大小
-                content.append(bg)
-            except Exception as e:
-                print('[ERROR]: 图片加载错误', e, pic)
+    for pic in post.get('picUrls'):
+        try:
+            resp = requests.get(pic, headers=headers)  # 请求图片
+            bg = Image.open(BytesIO(resp.content))
+            bg = bg.convert('RGBA')  # 读取图片
+            bg = bg.resize((int(text_width*w), int(bg.height*text_width*w/bg.width)), Image.ANTIALIAS)  # 调整大小
+            content.append(bg)
+        except Exception as e:
+            print('[ERROR]: 图片加载错误', e, pic)
 
     # 测量 发送时间以及设备 文本的高宽
     url_font = ImageFont.truetype(font_type, int(75*text_width*w/tw))
@@ -90,7 +93,7 @@ async def create_new_img(post: dict, userInfo: dict, headers=None, w=1080) -> Im
     image.paste(qrimg, (int(0.83*w), int(im.height+0.38*w+th)))
 
     # 头像
-    response = httpx.get(userInfo['face'])  # 请求图片
+    response = requests.get(userInfo['face'])  # 请求图片
     face = Image.open(BytesIO(response.content))  # 读取图片
     a = Image.new('L', face.size, 0)  # 创建一个黑色背景的画布
     ImageDraw.Draw(a).ellipse((0, 0, a.width, a.height), fill=255)  # 画白色圆形
