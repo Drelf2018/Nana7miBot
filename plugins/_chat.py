@@ -1,6 +1,6 @@
 import aiohttp
 from nana7mi import get_bot
-from nana7mi.adapter.cqBot import Message
+from nana7mi.adapters.cqBot import Message
 
 bot = get_bot()
 

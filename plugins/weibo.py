@@ -2,7 +2,7 @@
 import time
 
 from nana7mi import CQ_PATH, get_bot
-from nana7mi.adapter.cqBot import Message
+from nana7mi.adapters.cqBot import Message
 
 from plugins.weibo_detector.d2p import create_new_img
 from plugins.weibo_detector.weibo import get_data, get_post, get_userInfo, headers

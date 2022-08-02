@@ -51,10 +51,9 @@ class cqBot():
                 await asyncio.sleep(3)
         return self.converse.receive
 
-    async def run(self):
+    async def run(self, loop=asyncio.get_event_loop()):
         recv = await self.connect()
         resp = self.response
-        loop = asyncio.get_event_loop()
         while True:
             mes = await recv()
             event = get_event_from_msg(mes)
@@ -70,7 +69,7 @@ class cqBot():
             else:
                 self.logger.debug(f'收到信息：{mes.decode("utf-8").strip()}')
 
-    async def send(self, cmd):
+    async def send(self, cmd: str | list | tuple | dict):
         if not cmd:
             return
         elif isinstance(cmd, str):

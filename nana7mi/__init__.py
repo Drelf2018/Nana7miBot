@@ -12,7 +12,7 @@ from importlib import import_module
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-from .adapter.cqBot import cqBot, Message
+from .adapters.cqBot import cqBot, Message
 
 CQ_PATH = './go-cqhttp'
 Headers = {
@@ -67,6 +67,7 @@ class Nana7mi:
                     except Exception as e:
                         self.error(f'{file} 加载错误：{e}', id='Nana7mi')
             break
+        return self
 
     def load_buildin_plugins(self):
         if self.cqbot:
@@ -94,6 +95,7 @@ class Nana7mi:
                                 fp.write(content)
                             urls.append(f'[CQ:cardimage,file={file}]')
                 return event.reply(urls)
+        return self
 
     async def send_all_group_msg(self, text, id=''):
         with open('./nana7mi/config.json', 'r', encoding='utf-8') as fp:
@@ -107,10 +109,13 @@ class Nana7mi:
                     for group_id in groups_list.get(str(id), groups_list['default'])
             ])
 
-    async def run(self):
+    def run(self):
         self.info('cqBot 启动中', id='Nana7mi')
         self.sched.start()
-        await self.cqbot.run()
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(asyncio.wait([
+            self.cqbot.run(loop)
+        ]))
 
 
 __the_only_one_bot = None

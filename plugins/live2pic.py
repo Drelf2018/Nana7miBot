@@ -2,7 +2,7 @@
 
 from bilibili_api import live
 from nana7mi import CQ_PATH, get_bot
-from nana7mi.adapter.cqBot.event import Message
+from nana7mi.adapters.cqBot import Message
 
 from plugins._live2pic import Live2Pic
 
