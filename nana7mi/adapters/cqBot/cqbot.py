@@ -6,7 +6,7 @@ from typing import List
 
 from aiowebsocket.converses import AioWebSocket
 
-from . import _group, _private
+from . import _group, _private, on_command, limit
 from .event import Mate, Message, get_event_from_msg
 
 
@@ -17,15 +17,15 @@ class cqBot():
     logger.addHandler(handler)
     func_params = dict()
 
-    def setResponse(self, command=None, limit={}):
+    def setResponse(self, command=None, params=dict()):
         def response_function(func):
             @wraps(func)
-            @Message.on_command(command)
-            @Message.limit(**limit)
+            @on_command(command)
+            @limit(**params)
             async def wrapper(event):
                 return await func(event)
             self.response.append(wrapper)
-            self.func_params[wrapper] = (command, limit)
+            self.func_params[wrapper] = (command, params)
             return wrapper
         return response_function
 
@@ -58,10 +58,14 @@ class cqBot():
             mes = await recv()
             event = get_event_from_msg(mes)
             if isinstance(event, Mate):
-                if event.event_type == 'lifecycle' and event.sub_type == 'connect':
-                    self.logger.info('连接成功')
-                elif event.event_type == 'heartbeat':
-                    self.logger.debug('心跳中，将在 '+str(event.interval/1000)+' 秒后下次心跳 ')
+                match event.event_type:
+                    case 'lifecycle':
+                        if event.sub_type == 'connect':
+                            self.logger.info('连接成功')
+                        else:
+                            self.logger.error('连接失败')
+                    case 'heartbeat':
+                        self.logger.debug('心跳中，将在 '+str(event.interval/1000)+' 秒后下次心跳 ')
             elif isinstance(event, Message):
                 for func in resp:
                     loop.create_task(func(event)).add_done_callback(lambda task: loop.create_task(self.send(task.result())))

@@ -12,7 +12,7 @@ async def chat(event: Message):
     dic = {
         'key': 'free',
         'appid': 0,
-        'msg': event.message.replace('[CQ:at,qq=213034105]', '')
+        'msg': event.content
     }
     async with aiohttp.request('GET', url, params=dic) as resp:
         js = await resp.json(content_type='text/html', encoding='utf-8')

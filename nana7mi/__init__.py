@@ -14,6 +14,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from .adapters.cqBot import cqBot, Message
 
+
 CQ_PATH = './go-cqhttp'
 Headers = {
     'Connection': 'keep-alive',
@@ -75,7 +76,7 @@ class Nana7mi:
             @self.cqbot.setResponse(command='/echo')
             async def echo(event: Message):
                 self.info(str(event), 'echo')
-                return event.reply(' '.join(event.args).replace('&#91;', '[').replace('&#93;', ']'))
+                return event.reply(event.content.replace('&#91;', '[').replace('&#93;', ']'))
 
             # 响应来自 cqbot 的大图命令
             @self.cqbot.setResponse(command='/big')
