@@ -39,9 +39,9 @@ async def preparing(event):
     # await bot.send_all_group_msg(name+' 下播了\n正在生成场报，请稍后')
     tid = await auto_pic()
     if tid:
-        await bot.cqbot.send_guild_msg(59204391636967121, 9574966, f'[CQ:image,file=live/{tid}.png]')
+        await bot.cqbot.send_guild_msg(59204391636967121, 1399279, f'[CQ:image,file=live/{tid}.png]')
     else:
-        await bot.cqbot.send_guild_msg(59204391636967121, 9574966, '生成直播场报失败')
+        await bot.cqbot.send_guild_msg(59204391636967121, 1399279, '生成直播场报失败')
 
 
 start_time: int = 0
@@ -59,7 +59,7 @@ async def send_live_info(event):
         title = info['room_info']['title']
         area = info['room_info']['area_name']
         cover = info['room_info']['cover']
-        await bot.cqbot.send_guild_msg(59204391636967121, 9574966, f'{name} 正在 {area} 分区直播\n标题：{title}[CQ:image,file={cover}]')
+        await bot.cqbot.send_guild_msg(59204391636967121, 1399279, f'{name} 正在 {area} 分区直播\n标题：{title}[CQ:image,file={cover}]')
 
 
 # 重启监听

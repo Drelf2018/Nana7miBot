@@ -292,7 +292,7 @@ class Live2Pic:
 
         async with httpx.AsyncClient(headers=Headers) as session:
             pending = [
-                asyncio.create_task(get_info(session, f'https://api.drelf.cn/live/{self.roomid}/last')),
+                asyncio.create_task(get_info(session, f'http://localhost:5762/live/{self.roomid}/last')),
                 asyncio.create_task(get_face(session, self.uid)),
                 asyncio.create_task(get_data(session, 'guardNum', f'https://api.tokyo.vtbs.moe/v2/bulkGuard/{self.uid}')),
                 asyncio.create_task(get_data(session, 'follower', f'https://api.tokyo.vtbs.moe/v2/bulkActiveSome/{self.uid}'))
