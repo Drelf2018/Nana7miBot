@@ -6,7 +6,7 @@ from typing import List
 
 from aiowebsocket.converses import AioWebSocket
 
-from . import _group, _private, on_command, limit
+from . import _group, _private, _guild, on_command, limit
 from .event import Mate, Message, get_event_from_msg
 
 
@@ -93,3 +93,6 @@ class cqBot():
 
     async def send_group_msg(self, group_id: int, text: str):
         await self.send(_group % (int(group_id), str(text)))
+    
+    async def send_guild_msg(self, guild_id: str, channel_id: str, text: str):
+        await self.send(_guild % (str(guild_id), str(channel_id), str(text)))
