@@ -1,5 +1,6 @@
 import httpx
 from nana7mi import get_bot
+from nana7mi.adapters.cqBot import Message
 
 bot = get_bot()
 
@@ -25,12 +26,16 @@ class Online:
         if msg and msg != self.last_online_status:
             self.last_online_status = msg
             if msg == '微博在线了':
-                await bot.send_all_group_msg('七海Nana7mi '+msg, id='online')
+                await bot.cqbot.send_guild_msg(59204391636967121, 9574966, '七海Nana7mi '+msg)
             elif msg == '刚刚在线了':
-                await bot.send_all_group_msg('七海Nana7mi '+msg, id='online')
+                await bot.cqbot.send_guild_msg(59204391636967121, 9574966, '七海Nana7mi '+msg)
         bot.info(msg, 'online')
 
 
 # 七海Nana7mi 微博上线监控
 nana7mi_online = Online()
 bot.sched.add_job(nana7mi_online.check, 'interval', next_run_time=bot.run_time(10), seconds=10)
+
+@bot.cqbot.setResponse(command='/online')
+async def online(event: Message):
+    return event.reply(nana7mi_online.last_online_status)
