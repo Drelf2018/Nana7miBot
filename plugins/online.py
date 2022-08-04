@@ -27,8 +27,10 @@ class Online:
             self.last_online_status = msg
             if msg == '微博在线了':
                 await bot.cqbot.send_guild_msg(59204391636967121, 9574966, '七海Nana7mi '+msg)
+                await bot.cqbot.send_guild_msg(76861801659641160, 9638022, '七海Nana7mi '+msg)
             elif msg == '刚刚在线了':
                 await bot.cqbot.send_guild_msg(59204391636967121, 9574966, '七海Nana7mi '+msg)
+                await bot.cqbot.send_guild_msg(76861801659641160, 9638022, '七海Nana7mi '+msg)
         bot.info(msg, 'online')
 
 

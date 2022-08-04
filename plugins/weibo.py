@@ -44,12 +44,14 @@ async def weibo(uid):
             msg += '\n{text}\n\n{time}'.format_map(post)
 
             await bot.cqbot.send_guild_msg(59204391636967121, 9574966, msg)
+            await bot.cqbot.send_guild_msg(76861801659641160, 9638022, msg)
             
             # 图片版
             image = await create_new_img(post, userInfo, headers)
             image.save(pic_path, 'png')
             
             await bot.cqbot.send_guild_msg(59204391636967121, 9574966, '[CQ:image,file=wb/{mid}.png]'.format_map(post))
+            await bot.cqbot.send_guild_msg(76861801659641160, 9638022, '[CQ:image,file=wb/{mid}.png]'.format_map(post))
         # else:
         #     bot.info(f'用户 {uid} 微博 {post["mid"]} 已存在', 'Weibo')
 

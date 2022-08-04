@@ -40,8 +40,10 @@ async def preparing(event):
     tid = await auto_pic()
     if tid:
         await bot.cqbot.send_guild_msg(59204391636967121, 1399279, f'[CQ:image,file=live/{tid}.png]')
+        await bot.cqbot.send_guild_msg(76861801659641160, 9638023, f'[CQ:image,file=live/{tid}.png]')
     else:
         await bot.cqbot.send_guild_msg(59204391636967121, 1399279, '生成直播场报失败')
+        await bot.cqbot.send_guild_msg(76861801659641160, 9638023, '生成直播场报失败')
 
 
 start_time: int = 0
