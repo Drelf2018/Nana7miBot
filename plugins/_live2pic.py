@@ -202,7 +202,7 @@ async def get_data(session: httpx.AsyncClient(), key: str, url: str) -> Tuple[st
             pos -= 1
         return key, data_dict
     else:
-        print(key+'网络错误')
+        print(key+' 网络错误')
         return 'error', key
 
 
@@ -308,10 +308,12 @@ class Live2Pic:
                         self.liveinfo, cover = data
                         cover = circle_corner(cover).resize((cover.width*130//cover.height, 130), Image.ANTIALIAS)
                         await self.paste(cover, (570, 150))
-
+                    if code == 'error':
+                        continue
                     func = callback[code]
                     if func:
                         pending.add(asyncio.create_task(func(data)))
+            await asyncio.sleep(2)
 
         quotations = [
             '你们会无缘无故的发可爱，就代表哪天无缘无故发恶心',
@@ -350,18 +352,19 @@ class Live2Pic:
         await self.paste(circle_corner(income, 25), (70, 430))
 
         # 右上角立绘
-        nanami = Image.open(f'{self.folder}{randint(0,6)}.png')
-        w = int(nanami.width*600/nanami.height)
-        nanami = nanami.resize((w, 600), Image.ANTIALIAS)
-        body = nanami.crop((0, 0, w, 400))  # 不是跟身体切割了吗 上半身透明度保留
+        if self.uid == 434334701:
+            nanami = Image.open(f'{self.folder}{randint(0,6)}.png')
+            w = int(nanami.width*600/nanami.height)
+            nanami = nanami.resize((w, 600), Image.ANTIALIAS)
+            body = nanami.crop((0, 0, w, 400))  # 不是跟身体切割了吗 上半身透明度保留
 
-        a = body.getchannel('A')
-        pix = a.load()
-        for i in range(351, 400):
-            for j in range(w):
-                pix[j, i] = int((8-0.02*i) * pix[j, i])  # 下半部分透明度线性降低
+            a = body.getchannel('A')
+            pix = a.load()
+            for i in range(351, 400):
+                for j in range(w):
+                    pix[j, i] = int((8-0.02*i) * pix[j, i])  # 下半部分透明度线性降低
 
-        self.bg.paste(body, (935-w//2, 20), mask=a)
+            self.bg.paste(body, (935-w//2, 20), mask=a)
 
         card = Image.open(f'{self.folder}card{randint(0, 3)}.png')
         card = card.resize((100, 100), Image.ANTIALIAS)
