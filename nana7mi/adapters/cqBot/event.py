@@ -2,7 +2,7 @@ import re
 from json import loads
 from typing import List
 
-from . import _group, _private, _guild
+from . import _group, _private, _guild, obj2js
 
 
 class MessageType:
@@ -14,6 +14,7 @@ class Event:
     def reply(self, msgs: str | list | tuple) -> str | List[str]:
         '根据消息类型以及输入文字返回可发送至 go-cqhttp 的对应 json 语句'
         if isinstance(msgs, str):
+            msgs = obj2js(msgs)
             match self.message_type:
                 case MessageType.Private:
                     return _private % (int(self.user_id), msgs)
@@ -24,11 +25,11 @@ class Event:
         elif isinstance(msgs, (list, tuple)):
             match self.message_type:
                 case MessageType.Private:
-                    return [_private % (int(self.user_id), str(msg)) for msg in msgs]
+                    return [_private % (int(self.user_id), obj2js(msg)) for msg in msgs]
                 case MessageType.Group:
-                    return [_group % (int(self.group_id), str(msg)) for msg in msgs]
+                    return [_group % (int(self.group_id), obj2js(msg)) for msg in msgs]
                 case MessageType.Guild:
-                    return [_guild % (self.guild_id, self.channel_id, msg) for msg in msgs]
+                    return [_guild % (self.guild_id, self.channel_id, obj2js(msg)) for msg in msgs]
 
 class Mate(Event):
     def __init__(self, js):
@@ -58,7 +59,7 @@ class Message(Event):
         self.guild_id = js.get('guild_id')
         self.self_tiny_id = js.get('self_tiny_id')
         # 特殊参数
-        self.real_content = ''
+        # self.real_content = ''
         self.text = re.sub(r'\[CQ:(.*?)\]', '', self.message)
         self.at_me = f'[CQ:at,qq={self.self_id}]' in self.message
 
@@ -66,8 +67,12 @@ class Message(Event):
         return self.message.strip()
 
     @property
-    def content(self):
+    def content(self) -> str:
         return self.real_content.strip()
+
+    @property
+    def args(self) -> list:
+        return self.real_content.split()
 
     def split(self, split_text=' '):
         return self.message.strip().split(split_text)
