@@ -151,7 +151,8 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-plugins/xapi.py
-nana7mi/config.json
-nana7mi/adapters/cqBot/config.yml
+/plugins/xapi.py
+/nana7mi/config.json
+/plugins/weibo_detector/emoji
+/nana7mi/adapters/cqBot/config.yml
 go-cqhttp
