@@ -22,12 +22,21 @@ LIVELIVE: dict  # 直播数据
 
 @awaitable
 def get_data_fig(follower: dict, guardNum: dict):
-
     fig, ax = plt.subplots(figsize=(12, 4))
 
     title = list(follower.keys())[::-1]
     follower = list(follower.values())[::-1]
-    guardNum = list(guardNum.values())[::-1]
+
+    guardNew = []
+    for i in range(len(title)):
+        data = guardNum.get(title[i])
+        if not data:
+            if i == 0:
+                data = 0
+            else:
+                data = guardNew[i-1]
+        guardNew.append(data)
+    guardNum = guardNew
 
     delta = max(follower) - min(follower)
     text_delta = delta / 120

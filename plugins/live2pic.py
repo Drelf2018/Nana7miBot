@@ -29,9 +29,10 @@ async def auto_pic(uid: int = 434334701, roomid: int = 21452505):
 # 响应来自 cqbot 的场报命令
 @bot.cqbot.setResponse(command='/live')
 async def response(event: Message):
-    tid = await auto_pic(event.args[0])
+    uid = event.args[0] if event.args else 434334701
+    tid = await auto_pic(uid)
     if isinstance(tid, int):
-        return event.reply(f'[CQ:image,file=live/{event.args[0]}_{tid}.png]')
+        return event.reply(f'[CQ:image,file=live/{uid}_{tid}.png]')
     else:
         return event.reply(f'生成直播场报失败: {tid}')
 
