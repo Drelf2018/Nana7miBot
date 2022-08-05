@@ -137,7 +137,6 @@ class cqBot():
         if not cmd:
             return
         elif isinstance(cmd, str):
-            print(cmd)
             await self.converse.send(cmd)
         elif isinstance(cmd, (list, tuple)):
             for c in cmd:
