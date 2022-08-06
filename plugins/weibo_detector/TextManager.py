@@ -124,6 +124,8 @@ class TextManager:
                 flag = False
                 if c.height in [16, 64, 72]:
                     flag = True
+                    if line_height == 3:
+                        line_height = 39.6
                     c = c.resize((int(line_height/1.1), int(line_height/1.1)), Image.ANTIALIAS)
                 w, h = c.size
                 if limit - x < w:

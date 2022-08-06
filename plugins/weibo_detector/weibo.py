@@ -79,6 +79,8 @@ def get_post(data, n: int):
         text = text.replace('<br />', '\n').replace('<span class="ctt">', '').replace('</span>', '')
         text = text.replace('[开学季]', '[https://face.t.sinajs.cn/t4/appstyle/expression/ext/normal/72/2021_kaixueji_org.png]')
         text = text.replace('[融化]', '[https://face.t.sinajs.cn/t4/appstyle/expression/ext/normal/53/2022_melt_org.png]')
+        text = text.replace('[哇]', 'https://face.t.sinajs.cn/t4/appstyle/expression/ext/normal/3d/2022_wow_org.png')
+        text = text.replace('[苦涩]', 'https://face.t.sinajs.cn/t4/appstyle/expression/ext/normal/7e/2021_bitter_org.png')
         return text.strip()
 
     # 博文过长 更换网址进行爬取
@@ -122,7 +124,7 @@ def get_post(data, n: int):
 
 async def main():
     data = get_data(7198559139)
-    post = get_post(data, 2)
+    post = get_post(data, 5)
     userInfo = get_userInfo(7198559139)
     from d2p import create_new_img
     img = await create_new_img(post, userInfo, headers)
