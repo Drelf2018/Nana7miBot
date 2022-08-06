@@ -75,16 +75,16 @@ async def weibo(uid):
             await bot.cqbot.send_guild_msg(76861801659641160, 9638022, '[CQ:image,file=wb/{mid}.png]'.format_map(post))
         
         # 爬最新一条微博的评论
-        elif i == 1 and uid == 7198559139:
-            cmt = await get_comments(session, post["mid"])
-            old = set(Content[post['mid']].get('comment', set()))
-            new = cmt.difference(old)
-            if new:
-                bot.info(f'用户 {uid} 微博 {post["mid"]} 评论 {new}', 'Weibo')
-                Content[post['mid']]['comment'] = list(old | cmt)
-                save()
-                for c in new:
-                    await bot.cqbot.send_guild_msg(76861801659641160, 9638022, c)
+        # elif i == 1 and uid == 7198559139:
+        #     cmt = await get_comments(session, post["mid"])
+        #     old = set(Content[post['mid']].get('comment', set()))
+        #     new = cmt.difference(old)
+        #     if new:
+        #         bot.info(f'用户 {uid} 微博 {post["mid"]} 评论 {new}', 'Weibo')
+        #         Content[post['mid']]['comment'] = list(old | cmt)
+        #         save()
+        #         for c in new:
+        #             await bot.cqbot.send_guild_msg(76861801659641160, 9638022, c)
 
 # 七海Nana7mi 微博监控
 bot.sched.add_job(weibo, 'interval', seconds=10, next_run_time=bot.run_time(10), args=[7198559139])
@@ -92,7 +92,7 @@ bot.sched.add_job(weibo, 'interval', seconds=10, next_run_time=bot.run_time(10),
 # 响应来自 cqbot 的微博命令
 @bot.cqbot.setResponse(command='/weibo')
 async def getWeibo(event: Message):
-    async with httpx.AsyncClient() as session:
+    async with httpx.AsyncClient(headers=headers) as session:
         data = await get_data(session, 7198559139)
-        post = await get_post(session, data, 2)  
+        post = await get_post(session, data, 1)  
     return event.reply(f'[CQ:image,file=wb/{post["mid"]}.png]')
