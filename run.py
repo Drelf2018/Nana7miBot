@@ -1,3 +1,6 @@
-﻿from nana7mi import cqBot, get_bot
+﻿from nana7mi import cqBot, guildBot, get_bot
 
-get_bot(cqbot=cqBot().load_buildin_plugins()).load_plugins('./plugins').run()
+get_bot(
+    cqbot=cqBot().load_buildin_plugins(), 
+    guildbot=guildBot('stk')
+).load_plugins('./plugins').run()

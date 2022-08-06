@@ -8,6 +8,15 @@ from importlib import import_module
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from .adapters.cqBot import cqBot, CQ_PATH
+from .adapters.guildBot.guildSTK import guildBot
+
+__the_only_one_bot = None
+
+def get_bot(cqbot: cqBot = None, guildbot: guildBot = None, bilibot=None):
+    global __the_only_one_bot
+    if not __the_only_one_bot:
+        __the_only_one_bot = Nana7mi(cqbot, guildbot, bilibot)
+    return __the_only_one_bot
 
 class Nana7mi:
     def info(self, msg: str, id: str = ''):
@@ -19,11 +28,11 @@ class Nana7mi:
     def debug(self, msg: str, id: str = ''):
         self.__logger.debug(f'[{id}] {msg}' if id else msg)
 
-    def __init__(self, cqbot: cqBot = None, khlbot=None, bilibot=None):
+    def __init__(self, cqbot: cqBot = None, guildbot: guildBot = None, bilibot=None):
         '基于 OneBot 的机器人框架'
         # 适配器
         self.cqbot = cqbot
-        self.khlbot = khlbot
+        self.guildbot = guildbot
         self.bilibot = bilibot
 
         # 日志
@@ -61,19 +70,13 @@ class Nana7mi:
         return self
 
     def run(self):
-        self.info('cqBot 启动中', id='Nana7mi')
         self.sched.start()
         loop = asyncio.get_event_loop()
-        loop.run_until_complete(asyncio.wait([
-            self.cqbot.run(loop)
-        ]))
-
-
-__the_only_one_bot = None
-
-
-def get_bot(cqbot: cqBot = None, khlbot=None, bilibot=None) -> Nana7mi:
-    global __the_only_one_bot
-    if not __the_only_one_bot:
-        __the_only_one_bot = Nana7mi(cqbot, khlbot, bilibot)
-    return __the_only_one_bot
+        pending = list()
+        if self.cqbot:
+            self.info('cqBot 启动中', id='Nana7mi')
+            pending.append(self.cqbot.run(loop))
+        if self.guildbot:
+            self.info('guildBot 启动中', id='Nana7mi')
+            pending.append(self.guildbot.run(loop))
+        loop.run_until_complete(asyncio.wait(pending))
