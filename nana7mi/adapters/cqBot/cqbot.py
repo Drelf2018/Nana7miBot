@@ -77,8 +77,7 @@ class cqBot():
         # 响应来自 cqbot 的回声命令
         @self.setResponse(command='/echo')
         async def echo(event: Message):
-            # self.info(str(event), 'echo')
-            await self.send_all_msg(event, 'echo')
+            self.logger.info(str(event))
             return event.reply(event.content.replace('&#91;', '[').replace('&#93;', ']'))
 
         # 响应来自 cqbot 的大图命令
@@ -113,25 +112,33 @@ class cqBot():
 
     async def run(self, loop=asyncio.get_event_loop()):
         recv = await self.connect()
-        resp = self.response
-        while True:
-            mes = await recv()
-            event = get_event_from_msg(mes)
-            if isinstance(event, Mate):
-                match event.event_type:
-                    case 'lifecycle':
-                        if event.sub_type == 'connect':
-                            self.logger.info('连接成功')
-                        else:
-                            self.logger.error('连接失败')
-                    case 'heartbeat':
-                        self.logger.debug('心跳中，将在 '+str(event.interval/1000)+' 秒后下次心跳 ')
-            elif isinstance(event, Message):
-                for func in resp:
-                    loop.create_task(func(copy(event))).add_done_callback(lambda task: loop.create_task(self.send(task.result())))
-                # ok 了家人们 这是最神奇的一行代码 写出它我都感觉自己贼牛
-            else:
-                self.logger.debug(f'收到信息：{mes.decode("utf-8").strip()}')
+        # while True:
+        #     mes = await recv()
+        while True:  # 死循环接受消息
+            try:
+                loop.create_task(self.parse(await recv()))
+            except Exception as e:
+                self.logger.error(f'接收消息时错误: {e}')
+                break
+
+    async def parse(self, mes: bytes):
+        event = get_event_from_msg(mes)
+        if isinstance(event, Mate):
+            match event.event_type:
+                case 'lifecycle':
+                    if event.sub_type == 'connect':
+                        self.logger.info('连接成功')
+                    else:
+                        self.logger.error('连接失败')
+                case 'heartbeat':
+                    self.logger.debug('心跳中，将在 '+str(event.interval/1000)+' 秒后下次心跳 ')
+        elif isinstance(event, Message):
+            for func in self.response:
+                # loop.create_task(func(copy(event))).add_done_callback(lambda task: loop.create_task(self.send(task.result())))
+                await self.send(await func(copy(event)))
+            # ok 了家人们 这是最神奇的一行代码 写出它我都感觉自己贼牛
+        else:
+            self.logger.debug(f'收到信息：{mes.decode("utf-8").strip()}')
 
     async def send(self, cmd: str | list | tuple | dict):
         if not self.converse:
