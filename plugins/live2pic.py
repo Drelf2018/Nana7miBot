@@ -78,4 +78,7 @@ async def reconnection():
         await liveroom.disconnect()
     except Exception:
         ...
-    await liveroom.connect()
+    try:
+        await liveroom.connect()
+    except Exception as e:
+        bot.error(f'连接直播间时错误: {e}', 'live')
