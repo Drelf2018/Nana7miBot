@@ -4,11 +4,13 @@ import os
 import re
 from copy import copy
 from functools import wraps
+from io import BytesIO
 from json import dumps
 from typing import List
 
 import httpx
 from aiowebsocket.converses import AioWebSocket
+from PIL import Image
 from yaml import Loader, load
 
 from . import _group, _guild, _private, limit, obj2js, on_command
@@ -89,20 +91,18 @@ class cqBot():
         # 响应来自 cqbot 的大图命令
         @self.setResponse(command='/big')
         async def big(event: Message):
-            pics = re.findall(r'[A-Za-z0-9]+\.image', str(event))
-            urls = []
+            pics = re.findall(r'url=https?://[^\s!\]]*', event.content)
+            urls = list()
+            count = 0
             async with httpx.AsyncClient(headers=Headers) as session:
                 for pic in pics:
-                    with open(os.path.join(CQ_PATH, 'data', 'images', pic), 'rb') as f:
-                        content = f.read()
-                        pos = content.find(b'http')
-                        url = content[pos:].decode('utf-8')
-                        r = await session.get(url)
-                        content = r.read()
-                        file = pic.replace('.image', '.png')
-                        with open(os.path.join(CQ_PATH, 'data', 'images', file), 'wb') as fp:
-                            fp.write(content)
-                        urls.append(f'[CQ:cardimage,file={file}]')
+                    r = await session.get(pic[4:])
+                    content = r.read()
+                    img = Image.open(BytesIO(content))
+                    img = img.resize((450, int(img.height*450/img.width)), Image.ANTIALIAS)
+                    img.save(os.path.join(CQ_PATH, 'data', 'images', f'{count}.png'))
+                    urls.append(f'[CQ:cardimage,file={count}.png,source=/big]')
+                    count +=1 
             return event.reply(urls)
         return self
 
