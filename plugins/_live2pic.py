@@ -164,7 +164,10 @@ def word2pic(liveinfo: tuple, folder: str) -> Tuple[str, Image.Image]:
 
 
 async def get_info(session: httpx.AsyncClient(), url: str) -> Tuple[str, Tuple[dict, Image.Image]]:
-    resp = await session.get(url, timeout=20.0)
+    try:
+        resp = await session.get(url, timeout=20.0)
+    except Exception:
+        resp = await session.get(url.replace('localhost', 'api.drelf.cn'), timeout=20.0)
     assert resp.status_code == 200
     liveinfo = resp.json()
     resp = await session.get(liveinfo['live']['cover'])  # 请求图片
