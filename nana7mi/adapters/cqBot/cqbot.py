@@ -12,7 +12,7 @@ from aiowebsocket.converses import AioWebSocket
 from yaml import Loader, load
 
 from . import _group, _guild, _private, limit, obj2js, on_command
-from .event import Mate, Message, get_event_from_msg
+from .event import Mate, Message, MessageType, get_event_from_msg
 
 Headers = {
     'Connection': 'keep-alive',
@@ -74,6 +74,12 @@ class cqBot():
             self.logger.setLevel(logging.INFO)
 
     def load_buildin_plugins(self):
+        # 响应来自 cqbot 的位置命令
+        @self.setResponse(command='/here')
+        async def here(event: Message):
+            if event.message_type == MessageType.Guild:
+                return event.reply(f'{event.guild_id} {event.channel_id}')
+
         # 响应来自 cqbot 的回声命令
         @self.setResponse(command='/echo')
         async def echo(event: Message):
