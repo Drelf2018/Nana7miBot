@@ -1,27 +1,14 @@
 import re
-import requests
+import httpx
 import asyncio
 from lxml import etree
 
+name_a = re.compile(r"<a href='https://m.weibo.cn/n/([\u4E00-\u9FA5A-Za-z0-9_]+)'>@(\1)</a>")
+icon_span = re.compile(r'<span class="url-icon"><img alt="\[([\u4E00-\u9FA5A-Za-z0-9_]+)\]" src="([a-zA-z]+://[^\s]*)" style="width:1em; height:1em;" /></span>')
 
-# 请求
-session = requests.session()
-
-# weibo.cn COOKIES
-headers = {
-    'Connection': 'keep-alive',
-    'Accept-Language': 'zh-CN,zh;q=0.9',
-    'Accept-Encoding': 'gzip, deflate, br',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-    'Upgrade-Insecure-Requests': '1',
-    'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.62 Safari/537.36',
-    'cookie': 'SCF=Ao_CfNDAVoOOnPeRbWYncYwIxkt1qdMnP8GJwYAFUbdV2AwNmv18NfGuAVLGkp_al91dOQIJTvviNKRX_WnQV0I.; SUB=_2A25P0FJVDeRhGeFM7lQU8i7PyjmIHXVtO34drDV6PUJbktCOLRHBkW1NQNxRTyundxN1rIEaDb8vuDu9LX1y2PfV; SUBP=0033WrSXqPxfM725Ws9jqgMF55529P9D9WWsM7qnLH5XXeUsRC8WX5b75NHD95QNeo-cSKz7e02fWs4DqcjPi--RiKnXiKnci--4i-zEi-2ReKzpe0nt; _T_WM=b7e06bb363bcddabb34f5e7aba1d13f8'
-}
-
-
-def get_userInfo(uid):
+async def get_userInfo(session: httpx.AsyncClient, uid: int):
     # 获取博主当前信息
-    resp = session.get(f'https://m.weibo.cn/api/container/getIndex?type=uid&value={uid}', headers=headers)
+    resp = await session.get(f'https://m.weibo.cn/api/container/getIndex?type=uid&value={uid}')
     data = resp.json()['data']['userInfo']
     userInfo = {
         'id': uid,
@@ -34,13 +21,13 @@ def get_userInfo(uid):
     return userInfo
 
 
-def get_data(uid):
-    resp = session.get(f'https://weibo.cn/u/{uid}', headers=headers)
+async def get_data(session: httpx.AsyncClient, uid: int):
+    resp = await session.get(f'https://weibo.cn/u/{uid}')
     data = etree.HTML(resp.text.encode('utf-8'))
     return data
 
 
-def get_post(data, n: int):
+async def get_post(session: httpx.AsyncClient, data, n: int):
     """
     爬取指定位置博文
     Args:
@@ -86,7 +73,7 @@ def get_post(data, n: int):
     # 博文过长 更换网址进行爬取
     murl = post.xpath('.//a[contains(text(), "全文")]/@href')
     if murl:
-        resp = requests.get('https://weibo.cn'+murl[0], headers=headers)
+        resp = await session.get('https://weibo.cn'+murl[0])
         data = etree.HTML(resp.text.encode('utf-8'))
         span = data.xpath('//div[@class="c" and @id="M_"]/div/span')[0]
         info['text'] = get_content_text(span)[1:]
@@ -103,7 +90,7 @@ def get_post(data, n: int):
     if pics:
         info['text'] = info['text'][:-1]
         turl = post.xpath(f'.//a[contains(text(), "{pics[0]}")]/@href')[0]
-        resp = requests.get(turl, headers=headers)
+        resp = await session.get(turl)
         data = etree.HTML(resp.text.encode('utf-8'))
         info['picUrls'] = [('https://weibo.cn/' + url) for url in data.xpath('.//a[contains(text(), "原图")]/@href')]
     else:
@@ -122,12 +109,37 @@ def get_post(data, n: int):
     return info
 
 
+async def get_comments(session: httpx.AsyncClient, mid: int):
+    Data = set()
+    url = f'https://m.weibo.cn/api/comments/show?id={mid}'
+    page_url = 'https://m.weibo.cn/api/comments/show?id={mid}&page={page}'
+    resp = await session.get(url)
+    page_max_num = resp.json()['data']['max']
+    for i in range(1, page_max_num):
+        p_url = page_url.format(mid=mid, page=i)
+        resp = await session.get(p_url)
+        data = resp.json()['data'].get('data')
+        for d in data:
+            review_id = d['id']
+            like_counts = d['like_counts']
+            source = d['source']
+            username = d['user']['screen_name']
+            image = d['user']['profile_image_url']
+            verified = d['user']['verified']
+            verified_type = d['user']['verified_type']
+            profile_url = d['user']['profile_url']
+            comment = d['text']
+            if username == '七海Nana7mi':
+                Data.add(username+': '+icon_span.sub(r'[\1]', name_a.sub(r'@\1', comment)))
+    return Data
+
+
 async def main():
     data = get_data(7198559139)
     post = get_post(data, 5)
     userInfo = get_userInfo(7198559139)
     from d2p import create_new_img
-    img = await create_new_img(post, userInfo, headers)
+    img = await create_new_img(post, userInfo)
     img.show()
 
 if __name__ == '__main__':
