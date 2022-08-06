@@ -115,22 +115,22 @@ async def get_comments(session: httpx.AsyncClient, mid: int):
     page_url = 'https://m.weibo.cn/api/comments/show?id={mid}&page={page}'
     resp = await session.get(url)
     page_max_num = resp.json()['data']['max']
+
+    pending = []
     for i in range(1, page_max_num):
         p_url = page_url.format(mid=mid, page=i)
-        resp = await session.get(p_url)
-        data = resp.json()['data'].get('data')
-        for d in data:
-            review_id = d['id']
-            like_counts = d['like_counts']
-            source = d['source']
-            username = d['user']['screen_name']
-            image = d['user']['profile_image_url']
-            verified = d['user']['verified']
-            verified_type = d['user']['verified_type']
-            profile_url = d['user']['profile_url']
-            comment = d['text']
-            if username == '七海Nana7mi':
-                Data.add(username+': '+icon_span.sub(r'[\1]', name_a.sub(r'@\1', comment)))
+        pending.append(asyncio.create_task(session.get(p_url)))
+
+    while pending:
+        done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
+        for done_task in done:
+            resp = await done_task
+            data = resp.json()['data'].get('data')
+            for d in data:
+                username = d['user']['screen_name']
+                comment = d['text']
+                if username == '七海Nana7mi':
+                    Data.add(username+': '+icon_span.sub(r'[\1]', name_a.sub(r'@\1', comment)))
     return Data
 
 

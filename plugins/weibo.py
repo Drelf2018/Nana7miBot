@@ -75,7 +75,7 @@ async def weibo(uid):
             await bot.cqbot.send_guild_msg(76861801659641160, 9638022, '[CQ:image,file=wb/{mid}.png]'.format_map(post))
         
         # 爬最新一条微博的评论
-        elif i == 1:
+        elif i == 1 and uid == 7198559139:
             cmt = await get_comments(session, post["mid"])
             old = set(Content[post['mid']].get('comment', set()))
             new = cmt.difference(old)
