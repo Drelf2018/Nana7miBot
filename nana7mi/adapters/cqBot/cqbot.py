@@ -134,7 +134,9 @@ class cqBot():
                 self.logger.debug(f'收到信息：{mes.decode("utf-8").strip()}')
 
     async def send(self, cmd: str | list | tuple | dict):
-        if not cmd:
+        if not self.converse:
+            self.logger.error('发送消息时错误: cqBot 未连接')
+        elif not cmd:
             return
         elif isinstance(cmd, str):
             await self.converse.send(cmd)
@@ -146,7 +148,7 @@ class cqBot():
                 js = dumps(cmd, ensure_ascii=False)
                 await self.converse.send(js)
             except Exception as e:
-                self.logger.error(f'发送失败 {e}')
+                self.logger.error(f'发送消息时错误: {e}')
 
     async def send_private_msg(self, user_id: int, text: str):
         await self.send(_private % (int(user_id), obj2js(text)))
