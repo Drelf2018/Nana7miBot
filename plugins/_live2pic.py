@@ -1,18 +1,22 @@
 import asyncio
+import os
 import time
 from io import BytesIO
-from random import randint, choice
-from typing import Tuple, Optional
+from random import choice
+from typing import Optional, Tuple
 
 import httpx
 import jieba
+import matplotlib
 import numpy as np
+from awaits.awaitable import awaitable
 from PIL import Image, ImageDraw, ImageFont
 from wordcloud import STOPWORDS, WordCloud
-from awaits.awaitable import awaitable
-import matplotlib
+from yaml import Loader, load
+
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+
 plt.style.use("ggplot")
 plt.rcParams['font.sans-serif'] = ['SimHei']
 
@@ -142,7 +146,7 @@ def word2pic(liveinfo: tuple, folder: str) -> Tuple[str, Image.Image]:
     word = [u['msg'] for u in danmaku if u['type'] == 'DANMU_MSG']
     word = jieba.cut('/'.join(word), cut_all=False)
     word = '/'.join(word)
-    bg = Image.open(folder+'shark2.png')
+    bg = Image.new('RGB', (1326, 500))
     graph = np.array(bg)
 
     # 停用词
@@ -170,10 +174,7 @@ async def get_info(session: httpx.AsyncClient(), url: str) -> Tuple[str, Tuple[d
         resp = await session.get(url.replace('localhost', 'api.drelf.cn'), timeout=20.0)
     assert resp.status_code == 200
     liveinfo = resp.json()
-    resp = await session.get(liveinfo['live']['cover'])  # 请求图片
-    assert resp.status_code == 200
-    cover = Image.open(BytesIO(resp.read()))  # 读取图片
-    return 'info', (liveinfo['live'], cover)
+    return 'info', liveinfo['live']
 
 
 async def get_face(session: httpx.AsyncClient(), uid: int = 434334701) -> Tuple[str, Tuple[Image.Image, Optional[Image.Image]]]:
@@ -256,7 +257,10 @@ class Live2Pic:
         self.roomid = roomid
         self.folder = folder
         self.liveinfo = dict()
-        self.bg = Image.open(folder+'bg.png')
+        if os.path.exists(folder+f'{self.uid}\\bg.png'):
+            self.bg = Image.open(folder+f'{self.uid}\\bg.png')
+        else:
+            self.bg = Image.open(folder+'bg.png')
         self.draw = ImageDraw.Draw(self.bg)
         self.font = {size: ImageFont.truetype(folder+'HarmonyOS_Sans_SC_Regular.ttf', size) for size in [28, 30, 32, 35]}
         self.fontbd = {size: ImageFont.truetype(folder+'HarmonyOS_Sans_SC_Bold.ttf', size) for size in [32, 40, 50]}
@@ -282,7 +286,7 @@ class Live2Pic:
             'wc': lambda wc: self.paste(wc, (90, 940)),
             'ex': lambda face: self.paste(face, (910, 1375)),
             'bar': lambda bar: self.paste(bar, (-75, 500)),
-            'info': lambda x: word2pic(self.liveinfo, self.folder),
+            'info': lambda liveinfo: word2pic(liveinfo, self.folder),
             'get_bar': lambda data: get_data_fig(*data),
             'face': makeFace,
             'guardNum': lambda data: check_data('guardNum', data),
@@ -316,32 +320,25 @@ class Live2Pic:
                         code, data = await done_task  # 根据异步函数返回的 code 码执行相应 callback
                     except Exception as e:
                         print(e, done_task)
-                    if code == 'info':
-                        self.liveinfo, cover = data
-                        cover = circle_corner(cover).resize((cover.width*130//cover.height, 130), Image.ANTIALIAS)
-                        await self.paste(cover, (570, 150))
-                    if code == 'error':
                         continue
-                    func = callback[code]
-                    if func:
+                    if code == 'info':
+                        self.liveinfo = data
+                    if func := callback.get(code):
                         pending.add(asyncio.create_task(func(data)))
-            await asyncio.sleep(2)
 
-        quotations = [
-            '你们会无缘无故的发可爱，就代表哪天无缘无故发恶心',
-            '已经知道好多人都是双面人了，彼此放过吧',
-            '看到这种就很 sad 但是确实是我的错喔',
-            '你又觉得自己精神胜利了是吧',
-            '我没有惹你们任何人'
-        ]
+        # 导入语录文件
+        with open(f'{self.folder}quotations.yml', 'r', encoding='utf-8') as fp:
+            quotations = load(fp, Loader=Loader)
+            quotation = quotations.get(int(self.uid))
 
         t2s = lambda tt: time.strftime('%m/%d %H:%M', time.localtime(tt))
         self.draw.text((70, 178), '标题：'+self.liveinfo["title"], fill=self.text_color, font=self.fontbd[32])
         self.draw.text((70, 228), f'时间：{t2s(self.liveinfo["st"])} - {t2s(self.liveinfo["sp"])}', fill=self.text_color, font=self.font[28])
-        self.draw.text((600, 1290), '*数据来源：api.nana7mi.link', fill='grey', font=self.font[30])
-        self.draw.text((140, 1440), choice(quotations), fill='grey', font=self.font[32])
+        self.draw.text((615, 1305), '*数据来源：api.nana7mi.link', fill='grey', font=self.font[30])
+        if quotation:
+            self.draw.text((140, 1440), choice(quotation), fill='grey', font=self.font[32])
 
-        self.draw.text((70, 105), '直播记录', fill=self.text_color, font=self.fontbd[50])
+        self.draw.text((70, 105), self.liveinfo['username']+' 直播记录', fill=self.text_color, font=self.fontbd[50])
         self.draw.text((70, 271), '基础数据', fill=self.text_color, font=self.fontbd[40])
         self.draw.text((70, 490), '趋势图表', fill=self.text_color, font=self.fontbd[40])
         self.draw.text((70, 885), '弹幕词云', fill=self.text_color, font=self.fontbd[40])
@@ -364,11 +361,11 @@ class Live2Pic:
         await self.paste(circle_corner(income, 25), (70, 430))
 
         # 右上角立绘
-        if self.uid == 434334701:
-            nanami = Image.open(f'{self.folder}{randint(0,6)}.png')
+        for root, folders, files in os.walk(f'{self.folder}{self.uid}'):
+            nanami = Image.open(f'{self.folder}{self.uid}\\{choice(files)}')
             w = int(nanami.width*600/nanami.height)
             nanami = nanami.resize((w, 600), Image.ANTIALIAS)
-            body = nanami.crop((0, 0, w, 400))  # 不是跟身体切割了吗 上半身透明度保留
+            body = nanami.crop((0, 0, w, 400))  # 不是跟下半身切割了吗 上半身透明度保留
 
             a = body.getchannel('A')
             pix = a.load()
@@ -377,13 +374,22 @@ class Live2Pic:
                     pix[j, i] = int((8-0.02*i) * pix[j, i])  # 下半部分透明度线性降低
 
             self.bg.paste(body, (935-w//2, 20), mask=a)
+            break
 
-        card = Image.open(f'{self.folder}card{randint(0, 3)}.png')
-        card = card.resize((100, 100), Image.ANTIALIAS)
-        self.bg.paste(card, (20, 1400), mask=card.getchannel('A'))
+        # 左下角徽章
+        for root, folders, files in os.walk(f'{self.folder}{self.uid}\\cards'):
+            card = Image.open(f'{self.folder}{self.uid}\\cards\\{choice(files)}')
+            card = card.resize((100, 100), Image.ANTIALIAS)
+            card = card.convert('RGBA')
+            self.bg.paste(card, (20, 1400), mask=card.getchannel('A'))
+            break
 
         return self.bg
 
 
 if __name__ == '__main__':
-    asyncio.run(Live2Pic().makePic()).save('live.png')
+    from bilibili_api import sync, user
+    uid = 434334701
+    roominfo = sync(user.User(uid).get_live_info())
+    roomid = roominfo['live_room']['roomid']
+    sync(Live2Pic(uid=uid, roomid=roomid).makePic()).save('live.png')
