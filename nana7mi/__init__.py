@@ -48,24 +48,15 @@ class Nana7mi:
 
     def load_plugins(self, folder: str):
         sys.path.append(folder)
-        loaded_plugins = len(self.cqbot.response)
-        if loaded_plugins:
-            self.info('已加载内部模块', id='Nana7mi')
-            for func in self.cqbot.response:
-                self.info(f' » {func.__name__}{self.cqbot.func_params.get(func)}', id='Nana7mi')
-            self.info('-------------', id='Nana7mi')
         for root, dirs, files in os.walk(folder):
             for file in files:
                 if not file.startswith('_') and file.endswith('.py'):
                     try:
+                        self.info(f'{file} 已导入', id='cqBot')
                         import_module(file.replace('.py', ''))
-                        self.info(f'{file} 已加载', id='Nana7mi')
-                        for func in self.cqbot.response[loaded_plugins:]:
-                            self.info(f' » {func.__name__}{self.cqbot.func_params.get(func)}', id='Nana7mi')
-                        self.info('-------------', id='Nana7mi')
-                        loaded_plugins = len(self.cqbot.response)
+                        self.info('-------------', id='cqBot')
                     except Exception as e:
-                        self.error(f'{file} 加载错误：{e}', id='Nana7mi')
+                        self.error(f'{file} 加载错误：{e}', id='cqBot')
             break
         return self
 

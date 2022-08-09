@@ -31,7 +31,6 @@ class cqBot():
     handler = logging.StreamHandler()
     handler.setFormatter(logging.Formatter("[%(asctime)s] [%(levelname)s] [cqBot] %(message)s", '%H:%M:%S'))
     logger.addHandler(handler)
-    func_params = dict()
 
     def setResponse(self,
         command = None,
@@ -43,7 +42,7 @@ class cqBot():
         banned_channel = list(),
         at_me = False,
         group_both_user = False,
-        channel_both_user = False,
+        guild_both_user = False,
         callback: str = ''
     ):
         def response_function(func):
@@ -53,13 +52,14 @@ class cqBot():
                 white_user, banned_user,
                 white_group, banned_group,
                 white_channel, banned_channel,
-                at_me, group_both_user, channel_both_user,
+                at_me, group_both_user, guild_both_user,
                 callback
             )
             async def wrapper(event):
                 return await func(event)
             self.response.append(wrapper)
-            self.func_params[wrapper] = '(' + ', '.join([f'{k}={v}' for k, v in locals().items() if k not in ['wrapper', 'func', 'self'] and v]) + ')'
+            funcInfo = '(' + ', '.join([f'{k}={v}' for k, v in locals().items() if k not in ['wrapper', 'func', 'self'] and v]) + ')'
+            self.logger.info(f' » {wrapper.__name__}{funcInfo}')
             return wrapper
         return response_function
 
@@ -76,6 +76,8 @@ class cqBot():
             self.logger.setLevel(logging.INFO)
 
     def load_buildin_plugins(self):
+        self.logger.info('内部模块已导入')
+
         # 响应来自 cqbot 的位置命令
         @self.setResponse(command='/here')
         async def here(event: Message):
@@ -104,6 +106,8 @@ class cqBot():
                     urls.append(f'[CQ:cardimage,file={count}.png,source=/big]')
                     count +=1 
             return event.reply(urls)
+
+        self.logger.info('-------------')
         return self
 
     async def connect(self):
