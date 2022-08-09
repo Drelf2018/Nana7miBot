@@ -356,8 +356,9 @@ class Live2Pic:
                 self.draw.text((70+240*j+35*len(data[0]), 329+51*i+4), str(data[1]), fill=data[2], font=self.font[32])
 
         income = Image.new('RGBA', (940, 50), (132, 212, 155) if self.liveinfo['guard_buy'] else 'grey')
-        income.paste((255, 168, 180), (0, 0, int(940*self.liveinfo['send_gift']/total_income), 50))
-        income.paste((74, 194, 246), (int(940*(total_income-self.liveinfo['super_chat_message'])/total_income), 0, 940, 50))
+        if total_income:
+            income.paste((255, 168, 180), (0, 0, int(940*self.liveinfo['send_gift']/total_income), 50))
+            income.paste((74, 194, 246), (int(940*(total_income-self.liveinfo['super_chat_message'])/total_income), 0, 940, 50))
         await self.paste(circle_corner(income, 25), (70, 430))
 
         # 右上角立绘
