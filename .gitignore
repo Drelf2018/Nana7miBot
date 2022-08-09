@@ -150,9 +150,10 @@ cython_debug/
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
-
 /plugins/xapi.py
 /nana7mi/config.json
 /plugins/weibo_detector/emoji
+/nana7mi/adapters/guildBot/config.yml
 /nana7mi/adapters/cqBot/config.yml
+/plugins/weibo_detector/content.yml
 go-cqhttp
