@@ -347,7 +347,7 @@ class Live2Pic:
 
         basicData = [
             [('营收：', round(total_income, 2), self.text_color), ('弹幕：', self.liveinfo['total'], self.text_color), ('密度：', str(self.liveinfo['total']*60//(self.liveinfo['sp']-self.liveinfo['st']))+' / min', self.text_color)],
-            [('礼物：', round(self.liveinfo['send_gift'], 2), (255, 168, 180)), ('大航海：', round(self.liveinfo['guard_buy'], 2), (132, 212, 155)), ('醒目留言：', round(self.liveinfo['super_chat_message'], 2), (74, 194, 246))],
+            [('礼物：', round(self.liveinfo['send_gift'], 2), (255, 168, 180)), ('航海：', round(self.liveinfo['guard_buy'], 2), (132, 212, 155)), ('醒目留言：', round(self.liveinfo['super_chat_message'], 2), (74, 194, 246))],
         ]
 
         for i, rows in enumerate(basicData):  # 写“基础数据”文字
@@ -355,7 +355,7 @@ class Live2Pic:
                 self.draw.text((70+240*j, 329+51*i), data[0], fill=self.text_color, font=self.font[35])
                 self.draw.text((70+240*j+35*len(data[0]), 329+51*i+4), str(data[1]), fill=data[2], font=self.font[32])
 
-        income = Image.new('RGBA', (940, 50), (132, 212, 155))
+        income = Image.new('RGBA', (940, 50), (132, 212, 155) if self.liveinfo['guard_buy'] else 'grey')
         income.paste((255, 168, 180), (0, 0, int(940*self.liveinfo['send_gift']/total_income), 50))
         income.paste((74, 194, 246), (int(940*(total_income-self.liveinfo['super_chat_message'])/total_income), 0, 940, 50))
         await self.paste(circle_corner(income, 25), (70, 430))
