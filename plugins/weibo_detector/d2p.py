@@ -36,6 +36,7 @@ async def create_new_img(post: dict, userInfo: dict, headers=None, w=1080) -> Im
     text_font = ImageFont.truetype(font_type, size)
     content = [
         (post.get('repo'), '#1D1D1F', size, Font.homo),
+        '#'
         (post.get('text'), '#1D1D1F', size, Font.homo)
     ]
 

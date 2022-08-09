@@ -46,7 +46,7 @@ async def get_post(session: httpx.AsyncClient, data, n: int):
 
     if repo:
         repo = repo[0]
-        info['repo'] = ''.join(repo.xpath('.//text()')).replace('\xa0', '').replace('&#13;', '\n')
+        info['repo'] = ''.join(repo.xpath('./text()')).replace('\xa0', '').replace('&#13;', '\n')
         remove_text = ''.join(repo.xpath('./a[position()>last()-4]/text()')+repo.xpath('./span[last()]/text()'))
         remove_text = remove_text.replace('\xa0', '').replace('&#13;', '\n')
         info['repo'] = info['repo'].replace(remove_text, '').replace('转发理由:', '')
@@ -114,7 +114,11 @@ async def get_comments(session: httpx.AsyncClient, mid: int):
     url = f'https://m.weibo.cn/api/comments/show?id={mid}'
     page_url = 'https://m.weibo.cn/api/comments/show?id={mid}&page={page}'
     resp = await session.get(url)
-    page_max_num = resp.json()['data']['max']
+    try:
+        page_max_num = resp.json()['data']['max']
+    except Exception as e:
+        print(f'运行时错误: {e} {resp.json()}')
+        return Data
 
     pending = []
     for i in range(1, page_max_num):
