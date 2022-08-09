@@ -18,7 +18,7 @@ def limit(
     banned_channel = list(),
     at_me=False,
     group_both_user=False,
-    channel_both_user=False,
+    guild_both_user=False,
     callback: str = ''
 ):
     def check_event(white: list, banned: list, eid: int) -> bool:
@@ -53,7 +53,7 @@ def limit(
                 case MessageType.Guild:
                     if at_me and not event.at_me:
                         return failed_return(msg)
-                    if channel_both_user:
+                    if guild_both_user:
                         if not check_user(event.user_id):
                             return failed_return(msg)
                     return func(event) if check_channel(event.channel_id) else failed_return(msg)
