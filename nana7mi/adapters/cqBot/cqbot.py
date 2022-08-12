@@ -65,6 +65,7 @@ class cqBot():
 
     def __init__(self, url: str = 'ws://127.0.0.1:2434', response: List[callable] = None, debug: bool = False):
         self.url = url
+        self.__closed = False
         self.converse = None
         if response:
             self.response = response
@@ -74,10 +75,15 @@ class cqBot():
             self.logger.setLevel(logging.DEBUG)
         else:
             self.logger.setLevel(logging.INFO)
+        
+        self.logger.info('内部模块已导入')
+        # 重启命令
+        @self.setResponse('/reboot', white_user=[3099665076, 144115218677563300], group_both_user=True, guild_both_user=True)
+        async def reboot(event: Message):
+            self.__closed = True
+            await self.aws.close_connection()
 
     def load_buildin_plugins(self):
-        self.logger.info('内部模块已导入')
-
         # 响应来自 cqbot 的位置命令
         @self.setResponse(command='/here')
         async def here(event: Message):
@@ -114,6 +120,7 @@ class cqBot():
         while not self.converse:
             try:
                 async with AioWebSocket(self.url) as aws:
+                    self.aws = aws
                     self.converse = aws.manipulator
             except Exception:
                 self.logger.debug('重连中...')
@@ -122,14 +129,13 @@ class cqBot():
 
     async def run(self, loop=asyncio.get_event_loop()):
         recv = await self.connect()
-        # while True:
-        #     mes = await recv()
-        while True:  # 死循环接受消息
+        while not self.__closed:  # 死循环接受消息
             try:
                 loop.create_task(self.parse(await recv()))
             except Exception as e:
                 self.logger.error(f'接收消息时错误: {e}')
                 break
+        self.logger.info('连接已断开')
 
     async def parse(self, mes: bytes):
         event = get_event_from_msg(mes)

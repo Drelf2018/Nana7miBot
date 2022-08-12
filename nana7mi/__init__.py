@@ -70,4 +70,4 @@ class Nana7mi:
         if self.guildbot:
             self.info('guildBot 启动中', id='Nana7mi')
             pending.append(self.guildbot.run(loop))
-        loop.run_until_complete(asyncio.wait(pending))
+        loop.run_until_complete(asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED))
