@@ -12,12 +12,12 @@ uid = 434334701
 room_id = 21452505
 liveroom = live.LiveDanmaku(room_id)  # 接收弹幕, debug=True
 
-async def auto_pic(uid: int = 434334701, roomid: int = 21452505):
+async def auto_pic(uid: int = 434334701, roomid: int = 21452505, sourceURL: bool = False):
     try:
         if uid != 434334701:
             roominfo = await user.User(uid).get_live_info()
             roomid = roominfo['live_room']['roomid']
-        image = await Live2Pic(uid=uid, roomid=roomid).makePic()
+        image = await Live2Pic(uid=uid, roomid=roomid).makePic(sourceURL)
         tt = int(time.time())
         image.save(f'{CQ_PATH}/data/images/live/{uid}_{tt}.png')
         return tt
@@ -30,7 +30,7 @@ async def auto_pic(uid: int = 434334701, roomid: int = 21452505):
 @bot.cqbot.setResponse(command='/live')
 async def response(event: Message):
     uid = event.args[0] if event.args else 434334701
-    tid = await auto_pic(uid)
+    tid = await auto_pic(uid, sourceURL='-source=matsuri' in event.args)
     if isinstance(tid, int):
         return event.reply(f'[CQ:image,file=live/{uid}_{tid}.png]')
     else:

@@ -171,7 +171,7 @@ async def get_info(session: httpx.AsyncClient(), url: str) -> Tuple[str, Tuple[d
     try:
         resp = await session.get(url, timeout=20.0)
     except Exception:
-        resp = await session.get(url.replace('localhost', 'api.drelf.cn'), timeout=20.0)
+        resp = await session.get(url.replace('localhost', 'api.nana7mi.link'), timeout=20.0)
     assert resp.status_code == 200
     liveinfo = resp.json()
     return 'info', liveinfo['live']
@@ -271,7 +271,7 @@ class Live2Pic:
         self.bg.paste(img, box, mask=img.getchannel('A'))
         return 'done', None
 
-    async def makePic(self):
+    async def makePic(self, sourceURL: bool = False):
         # 主函数 用于生成图片
 
         Headers = {
@@ -306,9 +306,12 @@ class Live2Pic:
                 else:
                     return 'get_bar', (saved_data, data)         
 
+        # sourceURL 为 True 时使用 matsuri.icu 作为数据来源 否则用本地数据库
+        sourceURL = f'http://43.138.71.81:5763/matsuri/{self.uid}' if sourceURL else f'http://localhost:5762/live/{self.roomid}/last'
+
         async with httpx.AsyncClient(headers=Headers) as session:
             pending = [
-                asyncio.create_task(get_info(session, f'http://localhost:5762/live/{self.roomid}/last')),
+                asyncio.create_task(get_info(session, sourceURL)),
                 asyncio.create_task(get_face(session, self.uid)),
                 asyncio.create_task(get_data(session, 'guardNum', f'https://api.tokyo.vtbs.moe/v2/bulkGuard/{self.uid}')),
                 asyncio.create_task(get_data(session, 'follower', f'https://api.tokyo.vtbs.moe/v2/bulkActiveSome/{self.uid}'))
@@ -390,7 +393,7 @@ class Live2Pic:
 
 if __name__ == '__main__':
     from bilibili_api import sync, user
-    uid = 434334701
+    uid = 672342685
     roominfo = sync(user.User(uid).get_live_info())
     roomid = roominfo['live_room']['roomid']
-    sync(Live2Pic(uid=uid, roomid=roomid).makePic()).save('live.png')
+    sync(Live2Pic(uid=uid, roomid=roomid).makePic(True)).show()
