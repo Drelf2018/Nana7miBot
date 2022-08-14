@@ -187,6 +187,10 @@ class guildBot:
         u2 = js['live_info']['name']
         roomid = js['live_info']['room_id']
         match js['command']:
+            case 'LIVE':  # 开播
+                if (uid := js['live_info']['uid']) in self.users:
+                    await self.send(uid, roomid, '{name} 正在直播\n标题：{title}[CQ:image,file={cover}]'.format_map(js['live_info']))
+            
             case 'INTERACT_WORD':  # 进入直播间
                 if (uid := int(js['content']['data']['uid'])) in self.users:
                     u1 = js['content']['data']['uname']
@@ -219,6 +223,15 @@ class guildBot:
                     u1 = data['user_info']['uname']
                     msg = f'{u1} 在 {u2} 的直播间发送' + ' ￥{price} SuperChat 说：{message}'.format_map(data)
                     await self.send(uid, roomid, msg)
+
+            case 'PREPARING':  # 下播
+                if (uid := js['live_info']['uid']) in self.users:
+                    from plugins.live2pic import auto_pic
+                    tid = await auto_pic(uid, roomid)
+                    if isinstance(tid, int):
+                        await self.send(uid, roomid, f'[CQ:image,file=live/{uid}_{tid}.png]')
+                    else:
+                        await self.send(uid, roomid, f'生成直播场报失败: {tid}')
 
     async def send(self, uid: int, roomid: int, msg: str):
         self.parent.info(f'发送消息: {msg}', 'STKbt')
