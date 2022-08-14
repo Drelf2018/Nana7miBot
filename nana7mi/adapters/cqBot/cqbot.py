@@ -6,7 +6,7 @@ from copy import copy
 from functools import wraps
 from io import BytesIO
 from json import dumps
-from typing import List
+from typing import List, Tuple
 
 import httpx
 from aiowebsocket.converses import AioWebSocket
@@ -57,20 +57,22 @@ class cqBot():
             )
             async def wrapper(event):
                 return await func(event)
-            self.response.append(wrapper)
             funcInfo = '(' + ', '.join([f'{k}={v}' for k, v in locals().items() if k not in ['wrapper', 'func', 'self'] and v]) + ')'
-            self.logger.info(f' » {wrapper.__name__}{funcInfo}')
-            return wrapper
+            for wfunc, info in self.response:
+                if wfunc.__name__ == wrapper.__name__ and info == funcInfo:
+                    break
+            else:
+                self.response.append((wrapper, funcInfo))
+                self.logger.info(f' » {wrapper.__name__}{funcInfo}')
+                return wrapper
+            return func
         return response_function
 
-    def __init__(self, url: str = 'ws://127.0.0.1:2434', response: List[callable] = None, debug: bool = False):
+    def __init__(self, url: str = 'ws://127.0.0.1:2434', response: List[Tuple[callable, str]] = list(), debug: bool = False):
         self.url = url
         self.__closed = False
         self.converse = None
-        if response:
-            self.response = response
-        else:
-            self.response = []
+        self.response = response
         if debug:
             self.logger.setLevel(logging.DEBUG)
         else:
@@ -149,7 +151,7 @@ class cqBot():
                 case 'heartbeat':
                     self.logger.debug('心跳中，将在 '+str(event.interval/1000)+' 秒后下次心跳 ')
         elif isinstance(event, Message):
-            for func in self.response:
+            for func, _ in self.response:
                 # loop.create_task(func(copy(event))).add_done_callback(lambda task: loop.create_task(self.send(task.result())))
                 await self.send(await func(copy(event)))
             # ok 了家人们 这是最神奇的一行代码 写出它我都感觉自己贼牛
