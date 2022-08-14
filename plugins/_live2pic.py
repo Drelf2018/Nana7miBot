@@ -46,8 +46,9 @@ def get_data_fig(follower: dict, guardNum: dict):
     text_delta = delta / 120
 
     delta2 = max(guardNum) - min(guardNum)
-    alpha = delta / delta2
-    delta2 = int(min(guardNum) - delta2/6)
+    alpha = delta / delta2 if delta2 else 1
+
+    delta2 = int(min(guardNum) - delta2/6) if delta2 else min(guardNum)-delta/6
 
     delta = int(min(follower) - delta/6)
 
@@ -393,7 +394,7 @@ class Live2Pic:
 
 if __name__ == '__main__':
     from bilibili_api import sync, user
-    uid = 672342685
+    uid = 188888131
     roominfo = sync(user.User(uid).get_live_info())
     roomid = roominfo['live_room']['roomid']
-    sync(Live2Pic(uid=uid, roomid=roomid).makePic(True)).show()
+    sync(Live2Pic(uid=uid, roomid=roomid).makePic()).show()
