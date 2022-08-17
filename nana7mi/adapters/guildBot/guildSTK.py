@@ -1,5 +1,6 @@
 ﻿import asyncio
 import os
+import time
 from copy import copy
 from json import loads
 from typing import Literal, Tuple
@@ -11,6 +12,7 @@ from yaml import Loader, dump, load
 
 BASEURL = 'http://localhost:8080'
 SUPER_CHAT = []  # SC的唯一id避免重复记录
+ROOM_STATUS = {}  # 直播间开播状态
 room_notice ='''指令格式：/stk room []int
 在指令后用空格连接多个整数
 参数为正整数时添加监控该直播间
@@ -48,12 +50,12 @@ class guildBot:
         self.listening_users = set()
         self.guildMap = dict()
         for guild, val in self.cfg.items():
-            for roomid in val.get('roomid', list()):
+            for roomid in set(val.get('roomid', list())):
                 self.listening_rooms.add(roomid)
                 for channel, uids in val.items():
                     if channel == 'roomid':
                         continue
-                    for uid in uids:
+                    for uid in set(uids):
                         self.listening_users.add(uid)
                         if gm := self.guildMap.get((uid, roomid)):
                             gm.append((guild, channel))
@@ -94,7 +96,8 @@ class guildBot:
         async def queryMap(event: Message):
             if not event.message_type == MessageType.Guild:
                 return
-            return event.reply('\n'.join([f'{k} -> {v}' for k, v in self.guildMap.items()]))
+            msgs = [f'{k} -> {v}' for k, v in self.guildMap.items() if (int(event.guild_id), int(event.channel_id)) in v]
+            return event.reply('\n'.join(msgs))
 
         @self.parent.cqbot.setResponse('/stk room')
         async def modifyRoom(event: Message):
@@ -188,8 +191,11 @@ class guildBot:
         roomid = js['live_info']['room_id']
         match js['command']:
             case 'LIVE':  # 开播
-                if (uid := js['live_info']['uid']) in self.users:
-                    await self.send(uid, roomid, '{name} 正在直播\n标题：{title}[CQ:image,file={cover}]'.format_map(js['live_info']))
+                tt = int(time.time())
+                if tt - ROOM_STATUS.get(roomid, 0) > 300:
+                    ROOM_STATUS[roomid] = tt
+                    if (uid := js['live_info']['uid']) in self.users:
+                        await self.send(uid, roomid, '{name} 正在直播\n标题：{title}[CQ:image,file={cover}]'.format_map(js['live_info']))
             
             case 'INTERACT_WORD':  # 进入直播间
                 if (uid := int(js['content']['data']['uid'])) in self.users:
@@ -226,6 +232,7 @@ class guildBot:
 
             case 'PREPARING':  # 下播
                 if (uid := js['live_info']['uid']) in self.users:
+                    await self.send(uid, roomid, f'{uid} {roomid} 下播了')
                     from plugins.live2pic import auto_pic
                     tid = await auto_pic(uid, roomid)
                     if isinstance(tid, int):
