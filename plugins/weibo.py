@@ -1,19 +1,22 @@
-﻿import httpx
-from nana7mi import CQ_PATH, get_bot
-from nana7mi.adapters.cqBot import Message
+﻿import os
+import httpx
+from nana7mi import get_driver, log
+from nana7mi.adapters.event import Message
+from nana7mi.adapters.cqbot import cqBot
 from yaml import Loader, dump, load
 
 from plugins.weibo_detector.d2p import create_new_img
 from plugins.weibo_detector.weibo import get_data, get_post, get_userInfo, get_comments
 
-bot = get_bot()
-with open('plugins/weibo_detector/content.yml', 'r', encoding='utf-8') as fp:
+bot = get_driver()
+FILEDIR = os.path.dirname(__file__)
+with open(f'{FILEDIR}/weibo_detector/content.yml', 'r', encoding='utf-8') as fp:
     Content = load(fp, Loader=Loader)
     if not Content:
         Content = dict()
 
 def save():
-    with open('plugins/weibo_detector/content.yml', 'w', encoding='utf-8') as fp:
+    with open(f'{FILEDIR}/weibo_detector/content.yml', 'w', encoding='utf-8') as fp:
         dump(Content, fp, allow_unicode=True)
 
 # weibo.cn COOKIES
@@ -28,20 +31,20 @@ headers = {
 }
 
 async def weibo(uid):
-    bot.info(f'正在更新用户 {uid} 微博', 'Weibo')
+    log.info(f'正在更新用户 {uid} 微博', 'Weibo')
     session = httpx.AsyncClient(headers=headers)
     try:
         data = await get_data(session, uid)
         userInfo = dict()
     except Exception as e:
-        bot.error(f'更新用户 {uid} 微博失败 {e}', 'Weibo')
+        log.error(f'更新用户 {uid} 微博失败 {e}', 'Weibo')
         return
 
     for i in range(1, 4):  # 爬取前 3 条
         try:
             post = await get_post(session, data, i)
         except Exception as e:
-            bot.error(f'爬取用户 {uid} 第 {i} 条微博失败 {e}', 'Weibo')
+            log.error(f'爬取用户 {uid} 第 {i} 条微博失败 {e}', 'Weibo')
             continue
 
         # 检测微博是否存在或者是否发生变化
@@ -51,14 +54,17 @@ async def weibo(uid):
             save()
 
             # 生成图片并发送动态
-            bot.info(f'用户 {uid} 微博 {post["mid"]} 搬运中', 'Weibo')
+            log.info(f'用户 {uid} 微博 {post["mid"]} 搬运中', 'Weibo')
 
             # 获取博主信息
             if not userInfo:
                 try:
                     userInfo = await get_userInfo(session, uid)
                 except Exception as e:
-                    bot.error(f'爬取用户 {uid} 信息失败 {e}', 'Weibo')
+                    log.error(f'爬取用户 {uid} 信息失败 {e}', 'Weibo')
+
+            # 获取 cqBot 适配器
+            cb: cqBot = bot.bot_dict['cqBot']
 
             # 文字版
             msg = '{name}\n粉丝 {follower} | 关注 {follow}\n发送了微博:\n'.format_map(userInfo)
@@ -66,21 +72,21 @@ async def weibo(uid):
                 msg += '\n{repo}\n----------'.format_map(post)
             msg += '\n{text}\n\n{time}'.format_map(post)
 
-            await bot.cqbot.send_guild_msg(76861801659641160, 9638022, msg)
+            await cb.send_guild_msg(59204391636967121, 9673211, msg)
             
             # 图片版
             image = await create_new_img(post, userInfo, headers)
-            image.save(CQ_PATH + '/data/images/wb/'+post['mid']+'.png')
+            image.save(cb.PATH + '/data/images/wb/'+post['mid']+'.png')
 
-            await bot.cqbot.send_guild_msg(76861801659641160, 9638022, '[CQ:image,file=wb/{mid}.png]'.format_map(post))
+            await cb.send_guild_msg(59204391636967121, 9673211, '[CQ:image,file=wb/{mid}.png]'.format_map(post))
         
-        # 爬最新一条微博的评论
+        # 爬最新一条微博的评论 本来想用的 但是频繁了 爬不到数据了
         # elif i == 1 and uid == 7198559139:
         #     cmt = await get_comments(session, post["mid"])
         #     old = set(Content[post['mid']].get('comment', set()))
         #     new = cmt.difference(old)
         #     if new:
-        #         bot.info(f'用户 {uid} 微博 {post["mid"]} 评论 {new}', 'Weibo')
+        #         log.info(f'用户 {uid} 微博 {post["mid"]} 评论 {new}', 'Weibo')
         #         Content[post['mid']]['comment'] = list(old | cmt)
         #         save()
         #         for c in new:
@@ -90,9 +96,9 @@ async def weibo(uid):
 bot.sched.add_job(weibo, 'interval', seconds=10, next_run_time=bot.run_time(10), args=[7198559139])
 
 # 响应来自 cqbot 的微博命令
-@bot.cqbot.setResponse(command='/weibo')
+@bot.setResponse(command='/weibo')
 async def getWeibo(event: Message):
     async with httpx.AsyncClient(headers=headers) as session:
         data = await get_data(session, 7198559139)
         post = await get_post(session, data, 1)  
-    return event.reply(f'[CQ:image,file=wb/{post["mid"]}.png]')
+    return f'[CQ:image,file=wb/{post["mid"]}.png]'
