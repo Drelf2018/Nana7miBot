@@ -1,9 +1,10 @@
 ﻿import os
 
-from nana7mi import cqBot, get_bot, guildBot
+from nana7mi import get_driver
+from nana7mi.adapters import cqBot, guildBot
 
-get_bot(
-    cqbot=cqBot().load_buildin_plugins(), 
-    guildbot=guildBot('stk')
-).load_plugins('./plugins').run()
+bot = get_driver()
+bot.register_adapter(cqBot())
+bot.register_adapter(guildBot('stk'))
+bot.load_buildin_plugins().load_plugins('./plugins').run()
 os.system("start " + __file__)

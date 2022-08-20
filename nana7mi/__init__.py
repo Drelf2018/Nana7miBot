@@ -3,22 +3,19 @@ import datetime
 import logging
 import os
 import sys
+from functools import wraps
 from importlib import import_module
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-from .adapters.cqBot import cqBot, CQ_PATH
-from .adapters.guildBot.guildSTK import guildBot
+class Logger:
+    # 日志
+    __logger = logging.getLogger('Nana7mi')
+    __logger.setLevel(logging.INFO)
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter("[%(asctime)s] [%(levelname)s] %(message)s", '%H:%M:%S'))
+    __logger.addHandler(handler)
 
-__the_only_one_bot = None
-
-def get_bot(cqbot: cqBot = None, guildbot: guildBot = None, bilibot=None):
-    global __the_only_one_bot
-    if not __the_only_one_bot:
-        __the_only_one_bot = Nana7mi(cqbot, guildbot, bilibot)
-    return __the_only_one_bot
-
-class Nana7mi:
     def info(self, msg: str, id: str = ''):
         self.__logger.info(f'[{id}] {msg}' if id else msg)
 
@@ -28,23 +25,72 @@ class Nana7mi:
     def debug(self, msg: str, id: str = ''):
         self.__logger.debug(f'[{id}] {msg}' if id else msg)
 
-    def __init__(self, cqbot: cqBot = None, guildbot: guildBot = None, bilibot=None):
+log = Logger()
+
+from .adapters.basebot import BaseBot
+from .adapters.event import Message, MessageType, ParseLimit, limit, on_command
+
+class Nana7mi:
+    def __init__(self):
         '基于 OneBot 的机器人框架'
-        # 适配器
-        self.cqbot = cqbot
-        self.guildbot = guildbot
-        self.bilibot = bilibot
-
-        # 日志
-        self.__logger = logging.getLogger('Nana7mi')
-        self.__logger.setLevel(logging.DEBUG)
-        handler = logging.StreamHandler()
-        handler.setFormatter(logging.Formatter("[%(asctime)s] [%(levelname)s] %(message)s", '%H:%M:%S'))
-        self.__logger.addHandler(handler)
-
+        # 适配器字典
+        self.bot_dict = dict()
+        # 插件集
+        self.response = list()
         # 自动任务相关
         self.sched = AsyncIOScheduler(timezone="Asia/Shanghai")
         self.run_time = lambda seconds: datetime.datetime.now() + datetime.timedelta(seconds=seconds)
+
+    def setResponse(self, command = None, plt: ParseLimit = None):
+        def response_function(func):
+            @wraps(func)
+            @on_command(command)
+            @limit(plt)
+            async def wrapper(event):
+                return await func(event)
+            funcInfo = f'(command={command}'
+            if plt:
+                funcInfo += ''.join([f', {k}={v}' for k, v in plt.items() if v])
+            funcInfo += ')'
+            for wfunc, info in self.response:
+                if wfunc.__name__ == wrapper.__name__ and info == funcInfo:
+                    break
+            else:
+                self.response.append((wrapper, funcInfo))
+                log.info(f' » {wrapper.__name__}{funcInfo}')
+                return wrapper
+            return func
+        return response_function
+
+    def register_adapter(self, bot: BaseBot, name: str = ''):
+        # 安装适配器
+        if not name:
+            name = bot.__class__.__name__
+        assert isinstance(bot, BaseBot), f'注册 {name}: {bot} 时错误，非继承自基础机器人'
+        self.bot_dict[name] = bot.setParent(self)
+
+    def load_buildin_plugins(self):
+        log.info('内部模块已导入')
+        # 重启命令
+        @self.setResponse('/reboot', ParseLimit(white_user=[3099665076, 144115218677563300], group_both_user=True, guild_both_user=True))
+        async def reboot(event: Message):
+            event._receiver._closed = True
+            await event._receiver.aws.close_connection()
+
+        # 响应来自 cqbot 的位置命令
+        @self.setResponse(command='/here')
+        async def here(event: Message):
+            if event.message_type == MessageType.Guild:
+                return f'该频道ID：{event.guild_id}\n子频道ID：{event.channel_id}'
+
+        # 响应来自 cqbot 的回声命令
+        @self.setResponse(command='/echo')
+        async def echo(event: Message):
+            log.info(str(event), 'echo')
+            return event.content.replace('&#91;', '[').replace('&#93;', ']')
+
+        log.info('-------------')
+        return self
 
     def load_plugins(self, folder: str):
         sys.path.append(folder)
@@ -52,11 +98,11 @@ class Nana7mi:
             for file in files:
                 if not file.startswith('_') and file.endswith('.py'):
                     try:
-                        self.info(f'{file} 已导入', id='cqBot')
+                        log.info(f'{file} 已导入')
                         import_module(file.replace('.py', ''))
-                        self.info('-------------', id='cqBot')
+                        log.info('-------------')
                     except Exception as e:
-                        self.error(f'{file} 加载错误：{e}', id='cqBot')
+                        log.error(f'{file} 加载错误：{e}')
             break
         return self
 
@@ -64,10 +110,12 @@ class Nana7mi:
         self.sched.start()
         loop = asyncio.get_event_loop()
         pending = list()
-        if self.cqbot:
-            self.info('cqBot 启动中', id='Nana7mi')
-            pending.append(self.cqbot.run(loop))
-        if self.guildbot:
-            self.info('guildBot 启动中', id='Nana7mi')
-            pending.append(self.guildbot.run(loop))
+        for name, bot in self.bot_dict.items():
+            log.info(f'{name} 启动中', id='Nana7mi')
+            pending.append(bot.run(loop))
         loop.run_until_complete(asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED))
+
+__THE_ONLY_ONE_BOT = Nana7mi()
+
+def get_driver():
+    return __THE_ONLY_ONE_BOT
