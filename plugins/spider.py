@@ -1,7 +1,8 @@
 import json
 
 import aiohttp
-from nana7mi import get_bot
+from nana7mi import get_driver, log
+from nana7mi.adapters.cqbot import cqBot
 
 Headers = {
     'Connection': 'keep-alive',
@@ -11,7 +12,7 @@ Headers = {
     'Upgrade-Insecure-Requests': '1',
     'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.62 Safari/537.36'
 }
-bot = get_bot()
+bot = get_driver()
 userdata = {}
 
 
@@ -71,20 +72,23 @@ async def bili(uid):
                         if not userdata.get(key):
                             if u.get(key):
                                 userdata.update({key: u[key]})
-                                bot.info(f'初始化 {key} 为 {u[key]}', 'BILI')
+                                log.info(f'初始化 {key} 为 {u[key]}', 'BILI')
                         else:
+                            # 获取 cqBot 适配器
+                            cb: cqBot = bot.bot_dict['cqBot']
+
                             if key in ['pendant', 'nameplate']:
                                 if not userdata[key][key[0]+'id'] == u[key][key[0]+'id']:
                                     msg = userdata['name'] + ' ' + data_to_msg(key, userdata[key], u[key])
                                     userdata.update({key: u[key]})
-                                    bot.info(msg, 'BILI')
-                                    await bot.send_all_group_msg(msg, 'spider')
+                                    log.info(msg, 'BILI')
+                                    await cb.send_private_msg(3099665076, msg)
                             else:
                                 if not userdata[key] == u[key]:
                                     msg = userdata['name'] + ' ' + data_to_msg(key, userdata[key], u[key])
                                     userdata.update({key: u[key]})
-                                    bot.info(msg, 'BILI')
-                                    await bot.send_all_group_msg(msg, 'spider')
-        bot.info('资料更新完成', 'BILI')
+                                    log.info(msg, 'BILI')
+                                    await cb.send_private_msg(3099665076, msg)
+        log.info('资料更新完成', 'BILI')
     except Exception as e:
-        bot.error(e, 'BILI')
+        log.error(e, 'BILI')
