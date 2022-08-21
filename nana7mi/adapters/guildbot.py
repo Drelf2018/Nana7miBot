@@ -68,7 +68,7 @@ class guildBot(BaseBot):
 
     def __init__(self, aid: str, BASEURL: str = 'http://localhost:8080'):
         '连接 biligo-ws-live 的适配器'
-        super().__init__(BASEURL + f'/ws?id={aid}')
+        super().__init__(BASEURL + f'/ws?id={aid}', path='./go-cqhttp')
         self.BASEURL = BASEURL
         self.aid = aid  #  接入 biligo-ws-live 时的 id 用来区分不同监控程序
         self.url = BASEURL + f'/ws?id={aid}' # biligo-ws-live 运行地址
@@ -176,7 +176,7 @@ class guildBot(BaseBot):
                 if tt - ROOM_STATUS.get(roomid, 0) > 300:
                     ROOM_STATUS[roomid] = tt
                     if (uid := js['live_info']['uid']) in self.users:
-                        await self.send(uid, roomid, '{name} 正在直播\n{title}[CQ:image,file={cover}]'.format_map(js['live_info']))
+                        await self.send(uid, roomid, '{name}开播：{title}[CQ:image,file={cover}]'.format_map(js['live_info']))
             
             case 'INTERACT_WORD':  # 进入直播间
                 if (uid := int(js['content']['data']['uid'])) in self.users:
@@ -213,13 +213,15 @@ class guildBot(BaseBot):
 
             case 'PREPARING':  # 下播
                 if (uid := js['live_info']['uid']) in self.users:
-                    await self.send(uid, roomid, f'{uid} {roomid} 下播了')
+                    # await self.send(uid, roomid, f'{uid} {roomid} 下播了')
                     from plugins.live2pic import auto_pic
-                    tid = await auto_pic(uid, roomid)
-                    if isinstance(tid, int):
-                        await self.send(uid, roomid, f'[CQ:image,file=live/{uid}_{tid}.png]')
+                    img = await auto_pic(uid, roomid)
+                    if isinstance(img, Exception):
+                        return f'生成直播场报失败: {img}'
                     else:
-                        await self.send(uid, roomid, f'生成直播场报失败: {tid}')
+                        tt = int(time.time())
+                        img.save(f'{self.PATH}/data/images/live/{uid}_{tt}.png')
+                        return f'[CQ:image,file=live/{uid}_{tt}.png]'
 
     async def send(self, uid: int, roomid: int, msg: str):
         log.info(f'发送消息: {msg}', 'STKbot')
