@@ -176,7 +176,7 @@ class guildBot(BaseBot):
                 if tt - ROOM_STATUS.get(roomid, 0) > 300:
                     ROOM_STATUS[roomid] = tt
                     if (uid := js['live_info']['uid']) in self.users:
-                        await self.send(uid, roomid, '{name}开播：{title}[CQ:image,file={cover}]'.format_map(js['live_info']))
+                        await self.send(uid, roomid, '{name}开播了！\n{title}[CQ:image,file={cover}]'.format_map(js['live_info']))
             
             case 'INTERACT_WORD':  # 进入直播间
                 if (uid := int(js['content']['data']['uid'])) in self.users:

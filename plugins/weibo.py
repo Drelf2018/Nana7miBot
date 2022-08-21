@@ -72,13 +72,13 @@ async def weibo(uid):
                 msg += '\n{repo}\n----------'.format_map(post)
             msg += '\n{text}\n\n{time}'.format_map(post)
 
-            await cb.send_guild_msg(59204391636967121, 9673211, msg)
+            await cb.send_guild_msg(76861801659641160, 9638022, msg)
             
             # 图片版
             image = await create_new_img(post, userInfo, headers)
             image.save(cb.PATH + '/data/images/wb/'+post['mid']+'.png')
 
-            await cb.send_guild_msg(59204391636967121, 9673211, '[CQ:image,file=wb/{mid}.png]'.format_map(post))
+            await cb.send_guild_msg(76861801659641160, 9638022, '[CQ:image,file=wb/{mid}.png]'.format_map(post))
         
         # 爬最新一条微博的评论 本来想用的 但是频繁了 爬不到数据了
         # elif i == 1 and uid == 7198559139:
