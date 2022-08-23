@@ -8,30 +8,26 @@ from nana7mi.adapters.cqbot import cqBot
 from plugins._live2pic import Live2Pic
 
 bot = get_driver()
-
-async def auto_pic(uid: int = 434334701, roomid: int = 21452505, sourceURL: bool = False):
-    try:
-        if uid != 434334701:
-            roominfo = await user.User(uid).get_live_info()
-            roomid = roominfo['live_room']['roomid']
-        return await Live2Pic(uid=uid, roomid=roomid).makePic(sourceURL)
-    except Exception as e:
-        log.error(e, 'pic')
-        return e
+cb: cqBot = bot.bot_dict['cqBot']
 
 # 响应来自 cqbot 的场报命令
 @bot.setResponse(command='/live')
 async def response(event: Message):
     uid = event.args[0] if event.args else 434334701
-    img = await auto_pic(uid, sourceURL='-source=matsuri' in event.args)
-    if isinstance(img, Exception):
-        return f'生成直播场报失败: {img}'
-    else:
-        bot = event._receiver
-        if isinstance(bot, cqBot):
-            tt = int(time.time())
-            img.save(f'{bot.PATH}/data/images/live/{uid}_{tt}.png')
-            return f'[CQ:image,file=live/{uid}_{tt}.png]'
+    try:
+        if uid != 434334701:
+            roominfo = await user.User(uid).get_live_info()
+            roomid = roominfo['live_room']['roomid']
+        else:
+            roomid = 21452505
+        img = await Live2Pic(uid=uid, roomid=roomid).makePic('-source=matsuri' in event.args)
+
+        tt = int(time.time())
+        img.save(f'{cb.PATH}/data/images/live/{uid}_{tt}.png')
+        return f'[CQ:image,file=live/{uid}_{tt}.png]'
+    except Exception as e:
+        log.error(e, 'pic')
+        return f'生成直播场报失败: {e}'
 
 # 响应来自 cqbot 的场报命令
 @bot.setResponse(command='/pic')
