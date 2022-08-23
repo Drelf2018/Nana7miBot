@@ -163,6 +163,9 @@ class guildBot(BaseBot):
                 msg.append(f'移除监控用户：{str(Del)[1:-1]}')
             return '\n'.join(msg)
 
+        # 获取 cqBot 实例
+        self.cb: cqBot = self.Parent.bot_dict['cqBot']
+
         # 连接 biligo-ws-live
         await super().run(loop)
 
@@ -213,24 +216,22 @@ class guildBot(BaseBot):
 
             case 'PREPARING':  # 下播
                 if (uid := js['live_info']['uid']) in self.users:
-                    # await self.send(uid, roomid, f'{uid} {roomid} 下播了')
                     from plugins.live2pic import auto_pic
                     img = await auto_pic(uid, roomid)
                     if isinstance(img, Exception):
-                        return f'生成直播场报失败: {img}'
+                        await self.send(uid, roomid, f'生成直播场报失败: {img}')
                     else:
                         tt = int(time.time())
                         img.save(f'{self.PATH}/data/images/live/{uid}_{tt}.png')
-                        return f'[CQ:image,file=live/{uid}_{tt}.png]'
+                        await self.send(uid, roomid, f'[CQ:image,file=live/{uid}_{tt}.png]')
 
     async def send(self, uid: int, roomid: int, msg: str):
         log.info(f'发送消息: {msg}', 'STKbot')
-        cb: cqBot = self.Parent.bot_dict['cqBot']
         for guild_id, channel_id in self.guildMap.get((int(uid), int(roomid)), [(None, None)]):
             if not guild_id or not channel_id:
                 break
             else:
-                await cb.send_guild_msg(guild_id, channel_id, msg)
+                await self.cb.send_guild_msg(guild_id, channel_id, msg)
 
     def save(self):
         # 加载配置文件
