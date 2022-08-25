@@ -283,9 +283,11 @@ class Live2Pic:
             'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.62 Safari/537.36'
         }
         
+        exface: Image.Image = None
+        face_count = 0
+
         callback = {
             'wc': lambda wc: self.paste(wc, (90, 940)),
-            'ex': lambda face: self.paste(face, (910, 1375)),
             'bar': lambda bar: self.paste(bar, (-75, 500)),
             'info': lambda liveinfo: word2pic(liveinfo, self.folder),
             'get_bar': lambda data: get_data_fig(*data),
@@ -327,6 +329,8 @@ class Live2Pic:
                         continue
                     if code == 'info':
                         self.liveinfo = data
+                    if code == 'ex':
+                        exface = data
                     if func := callback.get(code):
                         pending.add(asyncio.create_task(func(data)))
 
@@ -341,6 +345,8 @@ class Live2Pic:
         self.draw.text((615, 1305), '*数据来源：api.nana7mi.link', fill='grey', font=self.font[30])
         if quotation:
             self.draw.text((140, 1440), choice(quotation), fill='grey', font=self.font[32])
+        else:
+            face_count += 1
 
         self.draw.text((70, 105), self.liveinfo['username']+' 直播记录', fill=self.text_color, font=self.fontbd[50])
         self.draw.text((70, 271), '基础数据', fill=self.text_color, font=self.fontbd[40])
@@ -380,6 +386,8 @@ class Live2Pic:
 
             self.bg.paste(body, (935-w//2, 20), mask=a)
             break
+        else:
+            face_count += 1
 
         # 左下角徽章
         for root, folders, files in os.walk(f'{self.folder}{self.uid}\\cards'):
@@ -388,6 +396,14 @@ class Live2Pic:
             card = card.convert('RGBA')
             self.bg.paste(card, (20, 1400), mask=card.getchannel('A'))
             break
+        else:
+            face_count += 1
+
+        if face_count == 3:
+            await self.paste(exface, (885, 95))
+            self.bg = self.bg.crop((0, 46, 1080, 1416))
+        else:
+            await self.paste(exface, (910, 1375)),  # 880, 95 46 1370
 
         return self.bg
 
