@@ -107,8 +107,9 @@ class Nana7mi:
         return self
 
     def run(self):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         self.sched.start()
-        loop = asyncio.get_event_loop()
         pending = list()
         for name, bot in self.bot_dict.items():
             log.info(f'{name} 启动中', id='Nana7mi')
