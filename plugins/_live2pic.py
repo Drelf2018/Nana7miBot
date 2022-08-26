@@ -9,7 +9,6 @@ import httpx
 import jieba
 import matplotlib
 import numpy as np
-from awaits.awaitable import awaitable
 from PIL import Image, ImageDraw, ImageFont
 from wordcloud import STOPWORDS, WordCloud
 from yaml import Loader, load
@@ -21,26 +20,12 @@ plt.style.use("ggplot")
 plt.rcParams['font.sans-serif'] = ['SimHei']
 
 
-LIVELIVE: dict  # 直播数据
-
-
-@awaitable
-def get_data_fig(follower: dict, guardNum: dict):
+async def get_data_fig(dataMap: dict):
     fig, ax = plt.subplots(figsize=(12, 4))
 
-    title = list(follower.keys())[::-1]
-    follower = list(follower.values())[::-1]
-
-    guardNew = []
-    for i in range(len(title)):
-        data = guardNum.get(title[i])
-        if not data:
-            if i == 0:
-                data = 0
-            else:
-                data = guardNew[i-1]
-        guardNew.append(data)
-    guardNum = guardNew
+    title = list(dataMap.keys())[::-1]
+    follower = [d['follower'] for d in dataMap.values()][::-1]
+    guardNum = [d['guardNum'] for d in dataMap.values()][::-1]
 
     delta = max(follower) - min(follower)
     text_delta = delta / 120
@@ -104,46 +89,10 @@ def get_data_fig(follower: dict, guardNum: dict):
     fig.savefig(buf, transparent=True)
     buf.seek(0)
     img = Image.open(buf)
-
     return 'bar', img
 
-
-@awaitable
-def makeFace(data: tuple):
-    face, pd = data
-    w, h = face.size
-
-    a = Image.new('L', face.size, 0)  # 创建一个黑色背景的画布
-    ImageDraw.Draw(a).ellipse((0, 0, a.width, a.height), fill=255)  # 画白色圆形
-
-    # 装扮
-    if pd:
-        image = Image.new('RGBA', (int(1.75*w), int(1.75*h)), (0, 0, 0, 0))
-        image.paste(face, (int(0.375*w), int(0.375*h)), mask=a)  # 粘贴至背景
-        pd = pd.resize((int(1.75*w), int(1.75*h)), Image.ANTIALIAS)  # 装扮应当是头像的1.75倍
-        image.paste(pd, (0, 0), mask=pd.getchannel('A'))  # 粘贴至背景
-        return 'ex', image.resize((150, 150), Image.ANTIALIAS)
-    # 粉圈
-    else:
-        image = Image.new('RGBA', (int(1.16*w), int(1.16*h)), (0, 0, 0, 0))
-        image.paste(face, (int(0.08*w), int(0.08*h)), mask=a)  # 粘贴至背景
-        ps = Image.new("RGB", (int(1.16*w), int(1.16*h)), (242, 93, 142))
-        a = Image.new('L', ps.size, 0)  # 创建一个黑色背景的画布
-        ImageDraw.Draw(a).ellipse((0, 0, a.width, a.height), fill=255)  # 画白色外圆
-        ImageDraw.Draw(a).ellipse((int(0.06*w), int(0.06*h), int(1.1*w), int(1.1*h)), fill=0)  # 画黑色内圆
-        image.paste(ps, (0, 0), mask=a)  # 粘贴至背景
-        w, h = image.size
-        bg = Image.new('RGBA', (int(1.25*w), int(1.25*h)), (0, 0, 0, 0))
-        bg.paste(image, (int((1.25-1)/2*w), int((1.25-1)/2*h)))
-        return 'ex', bg.resize((150, 150), Image.ANTIALIAS)
-
-
-@awaitable
-def word2pic(liveinfo: tuple, folder: str) -> Tuple[str, Image.Image]:
-    # 弹幕词云 此处应更改为 matsuri.icu  LIVEINFO['live']['danmaku']
-
+async def word2pic(danmaku: list, folder: str='live/') -> Tuple[str, Image.Image]:
     # jieba 分词
-    danmaku = liveinfo['danmaku']
     word = [u['msg'] for u in danmaku if u['type'] == 'DANMU_MSG']
     word = jieba.cut('/'.join(word), cut_all=False)
     word = '/'.join(word)
@@ -164,15 +113,13 @@ def word2pic(liveinfo: tuple, folder: str) -> Tuple[str, Image.Image]:
         stopwords=stopwords,  
         mode="RGBA")
     wc.generate(word)
-
     return 'wc', wc.to_image().resize((900, 900*bg.height//bg.width), Image.ANTIALIAS)
-
 
 async def get_info(session: httpx.AsyncClient(), url: str) -> Tuple[str, Tuple[dict, Image.Image]]:
     try:
         resp = await session.get(url, timeout=20.0)
     except Exception:
-        resp = await session.get(url.replace('localhost', 'api.nana7mi.link'), timeout=20.0)
+        resp = await session.get(url.replace('localhost', 'frp.drelf.cn'), timeout=20.0)
     assert resp.status_code == 200
     liveinfo = resp.json()
     return 'info', liveinfo['live']
@@ -182,43 +129,38 @@ async def get_face(session: httpx.AsyncClient(), uid: int = 434334701) -> Tuple[
     # 爬取装扮及头像
     resp = await session.get(f'https://account.bilibili.com/api/member/getCardByMid?mid={uid}', timeout=20.0)
     js = resp.json()
-    face = js.get('card', {}).get('face')
-    pendant = js.get('card', {}).get('pendant', {}).get('image')
     # 头像
-    if isinstance(face, str):
+    if face := js.get('card', {}).get('face'):
         response = await session.get(face)  # 请求图片
         face = Image.open(BytesIO(response.read()))  # 读取图片
+        w, h = face.size
+        a = Image.new('L', face.size, 0)  # 创建一个黑色背景的画布
+        ImageDraw.Draw(a).ellipse((0, 0, a.width, a.height), fill=255)  # 画白色圆形
+
     # 装扮
-    if pendant:
+    if pendant := js.get('card', {}).get('pendant', {}).get('image'):
         response = await session.get(pendant)  # 请求图片
-        pd = Image.open(BytesIO(response.read()))  # 读取图片
-        pd = pd.convert('RGBA')
+        pendant = Image.open(BytesIO(response.read()))  # 读取图片
+        pendant = pendant.convert('RGBA')
+
+        bg = Image.new('RGBA', (int(1.75*w), int(1.75*h)), (0, 0, 0, 0))
+        bg.paste(face, (int(0.375*w), int(0.375*h)), mask=a)  # 粘贴至背景
+        pendant = pendant.resize((int(1.75*w), int(1.75*h)), Image.ANTIALIAS)  # 装扮应当是头像的1.75倍
+        bg.paste(pendant, (0, 0), mask=pendant.getchannel('A'))  # 粘贴至背景
+    # 粉圈
     else:
-        pd = None
-    return 'face', (face, pd)
-
-
-async def get_data(session: httpx.AsyncClient(), key: str, url: str) -> Tuple[str, dict]:
-    # 粉丝、大航海数据
-    r = await session.get(url, timeout=20.0)
-    if r.status_code == 200:
-        js = r.json()
-        current_date = None
-        count = 0
-        pos = len(js)-1
-        data_dict = dict()
-        while pos >= 0 and count < 7:
-            date = time.strftime('%m-%d', time.localtime(js[pos]['time']/1000))
-            if not current_date == date:
-                data_dict[date] = js[pos][key]
-                count += 1
-                current_date = date
-            pos -= 1
-        return key, data_dict
-    else:
-        print(key+' 网络错误')
-        return 'error', key
-
+        image = Image.new('RGBA', (int(1.16*w), int(1.16*h)), (0, 0, 0, 0))
+        image.paste(face, (int(0.08*w), int(0.08*h)), mask=a)  # 粘贴至背景
+        ps = Image.new("RGB", (int(1.16*w), int(1.16*h)), (242, 93, 142))
+        a = Image.new('L', ps.size, 0)  # 创建一个黑色背景的画布
+        ImageDraw.Draw(a).ellipse((0, 0, a.width, a.height), fill=255)  # 画白色外圆
+        ImageDraw.Draw(a).ellipse((int(0.06*w), int(0.06*h), int(1.1*w), int(1.1*h)), fill=0)  # 画黑色内圆
+        image.paste(ps, (0, 0), mask=a)  # 粘贴至背景
+        w, h = image.size
+        bg = Image.new('RGBA', (int(1.25*w), int(1.25*h)), (0, 0, 0, 0))
+        bg.paste(image, (int((1.25-1)/2*w), int((1.25-1)/2*h)))
+    
+    return 'face', bg.resize((150, 150), Image.ANTIALIAS)
 
 def circle_corner(img: Image.Image, radii: int = 0) -> Image.Image:  # 把原图片变成圆角，这个函数是从网上找的
     """
@@ -267,12 +209,10 @@ class Live2Pic:
         self.fontbd = {size: ImageFont.truetype(folder+'HarmonyOS_Sans_SC_Bold.ttf', size) for size in [32, 40, 50]}
         self.text_color = '#1D1D1F'
 
-    @awaitable
     def paste(self, img: Image.Image, box: tuple):
         self.bg.paste(img, box, mask=img.getchannel('A'))
-        return 'done', None
 
-    async def makePic(self, sourceURL: bool = False):
+    async def makePic(self):
         # 主函数 用于生成图片
 
         Headers = {
@@ -283,41 +223,13 @@ class Live2Pic:
             'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.62 Safari/537.36'
         }
         
-        exface: Image.Image = None
+        face: Image.Image = None
         face_count = 0
-
-        callback = {
-            'wc': lambda wc: self.paste(wc, (90, 940)),
-            'bar': lambda bar: self.paste(bar, (-75, 500)),
-            'info': lambda liveinfo: word2pic(liveinfo, self.folder),
-            'get_bar': lambda data: get_data_fig(*data),
-            'face': makeFace,
-            'guardNum': lambda data: check_data('guardNum', data),
-            'follower': lambda data: check_data('follower', data),
-            'done': None
-        }
-
-        saved_data = None
-        async def check_data(code, data):
-            nonlocal saved_data
-            if not saved_data:
-                saved_data = data
-                return 'done', None
-            else:
-                if code == 'follower':
-                    return 'get_bar', (data, saved_data)
-                else:
-                    return 'get_bar', (saved_data, data)         
-
-        # sourceURL 为 True 时使用 matsuri.icu 作为数据来源 否则用本地数据库
-        sourceURL = f'http://43.138.71.81:5763/matsuri/{self.uid}' if sourceURL else f'http://localhost:5762/live/{self.roomid}/last'
 
         async with httpx.AsyncClient(headers=Headers) as session:
             pending = [
-                asyncio.create_task(get_info(session, sourceURL)),
+                asyncio.create_task(get_info(session, f'http://localhost:5762/live/{self.roomid}/last')),
                 asyncio.create_task(get_face(session, self.uid)),
-                asyncio.create_task(get_data(session, 'guardNum', f'https://api.tokyo.vtbs.moe/v2/bulkGuard/{self.uid}')),
-                asyncio.create_task(get_data(session, 'follower', f'https://api.tokyo.vtbs.moe/v2/bulkActiveSome/{self.uid}'))
             ]
             while pending:
                 done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
@@ -327,12 +239,17 @@ class Live2Pic:
                     except Exception as e:
                         print(e, done_task)
                         continue
-                    if code == 'info':
-                        self.liveinfo = data
-                    if code == 'ex':
-                        exface = data
-                    if func := callback.get(code):
-                        pending.add(asyncio.create_task(func(data)))
+                    match code:
+                        case 'info':
+                            self.liveinfo = data
+                            pending.add(asyncio.create_task(get_data_fig(data['dataMap'])))
+                            pending.add(asyncio.create_task(word2pic(data['danmaku'], self.folder)))
+                        case 'face':
+                            face = data
+                        case 'wc':
+                            self.paste(data, (90, 940))
+                        case 'bar':
+                            self.paste(data, (-75, 500))
 
         # 导入语录文件
         with open(f'{self.folder}quotations.yml', 'r', encoding='utf-8') as fp:
@@ -369,7 +286,7 @@ class Live2Pic:
         if total_income:
             income.paste((255, 168, 180), (0, 0, int(940*self.liveinfo['send_gift']/total_income), 50))
             income.paste((74, 194, 246), (int(940*(total_income-self.liveinfo['super_chat_message'])/total_income), 0, 940, 50))
-        await self.paste(circle_corner(income, 25), (70, 430))
+        self.paste(circle_corner(income, 25), (70, 430))
 
         # 右上角立绘
         for root, folders, files in os.walk(f'{self.folder}{self.uid}'):
@@ -400,17 +317,17 @@ class Live2Pic:
             face_count += 1
 
         if face_count == 3:
-            await self.paste(exface, (885, 95))
+            self.paste(face, (885, 95))
             self.bg = self.bg.crop((0, 46, 1080, 1416))
         else:
-            await self.paste(exface, (910, 1375)),  # 880, 95 46 1370
+            self.paste(face, (910, 1375))
 
         return self.bg
 
 
 if __name__ == '__main__':
     from bilibili_api import sync, user
-    uid = 188888131
+    uid = 434334701
     roominfo = sync(user.User(uid).get_live_info())
     roomid = roominfo['live_room']['roomid']
     sync(Live2Pic(uid=uid, roomid=roomid).makePic()).show()

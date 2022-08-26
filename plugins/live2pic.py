@@ -20,7 +20,7 @@ async def response(event: Message):
             roomid = roominfo['live_room']['roomid']
         else:
             roomid = 21452505
-        img = await Live2Pic(uid=uid, roomid=roomid).makePic('-source=matsuri' in event.args)
+        img = await Live2Pic(uid=uid, roomid=roomid).makePic()
 
         tt = int(time.time())
         img.save(f'{cb.PATH}/data/images/live/{uid}_{tt}.png')
