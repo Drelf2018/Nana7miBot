@@ -49,9 +49,6 @@ async def weibo(uid):
 
         # 检测微博是否存在或者是否发生变化
         if Content.get(post['mid'], {}).get('content') != (rtext := post['repo'] if post['repo'] else post['text']):
-            # 发生变化保存到文件
-            Content[post['mid']] = {'content': rtext, 'comment': Content.get(post['mid'], {}).get('comment', list())}
-            save()
 
             # 生成图片并发送动态
             log.info(f'用户 {uid} 微博 {post["mid"]} 搬运中', 'Weibo')
@@ -79,6 +76,10 @@ async def weibo(uid):
             image.save(cb.PATH + '/data/images/wb/'+post['mid']+'.png')
 
             await cb.send_guild_msg(76861801659641160, 9638022, '[CQ:image,file=wb/{mid}.png]'.format_map(post))
+
+            # 发生变化保存到文件
+            Content[post['mid']] = {'content': rtext, 'comment': Content.get(post['mid'], {}).get('comment', list())}
+            save()
         
         # 爬最新一条微博的评论 本来想用的 但是频繁了 爬不到数据了
         # elif i == 1 and uid == 7198559139:
