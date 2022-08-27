@@ -240,5 +240,5 @@ class guildBot(BaseBot):
 
     def save(self):
         # 加载配置文件
-        with open(os.path.dirname(__file__)+'\\config.yml', 'w', encoding='utf-8') as fp:
+        with open(os.path.dirname(__file__)+'\\guildbot.yml', 'w', encoding='utf-8') as fp:
             dump(self.cfg, fp, allow_unicode=True)
