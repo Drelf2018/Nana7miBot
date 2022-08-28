@@ -65,8 +65,6 @@ class Message(Event):
 class ParseLimit(TypedDict):
     '''包含用户、群聊、频道的黑白名单 如果存在白名单会忽略黑名单
     params: at_me 表示是否@机器人
-    params: group_both_user 如果为真则判断群聊是否通过黑白名单时同时判断发送人是否通过用户黑白名单
-    params: guild_both_user 同理，频道
     params: callback 判断不通过时的回复，现仅支持在字符中插入 {user_id} 表示发送人QQ号(频道号)'''
     white_user: List[int]
     banned_user: List[int]
@@ -75,8 +73,6 @@ class ParseLimit(TypedDict):
     white_channel: List[int]
     banned_channel: List[int]
     at_me: bool
-    group_both_user: bool
-    guild_both_user: bool
     callback: str
 
 def get_event_from_msg(msg: bytes, recv):
@@ -112,22 +108,18 @@ def limit(plt: ParseLimit):
         @wraps(func)
         def wrapped_function(event: Message):
             msg = plt.get('callback', '').format(user_id=event.user_id)
+            if not check_user(event.user_id):
+                return failed_return(msg)
             match event.message_type:
                 case MessageType.Private:
-                    return func(event) if check_user(event.user_id) else failed_return(msg)
+                    return func(event)
                 case MessageType.Group:
                     if plt.get('at_me') and not event.at_me:
                         return failed_return(msg)
-                    if plt.get('group_both_user'):
-                        if not check_user(event.user_id):
-                            return failed_return(msg)
                     return func(event) if check_group(event.group_id) else failed_return(msg)
                 case MessageType.Guild:
-                    if plt.get('at_me and not event.at_me'):
+                    if plt.get('at_me') and not event.at_me:
                         return failed_return(msg)
-                    if plt.get('guild_both_user'):
-                        if not check_user(event.user_id):
-                            return failed_return(msg)
                     return func(event) if check_channel(event.channel_id) else failed_return(msg)
         return wrapped_function
     return check
