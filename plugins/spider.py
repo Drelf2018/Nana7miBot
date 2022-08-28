@@ -75,7 +75,7 @@ async def bili(uid):
                                 log.info(f'初始化 {key} 为 {u[key]}', 'BILI')
                         else:
                             # 获取 cqBot 适配器
-                            cb: cqBot = bot.bot_dict['cqBot']
+                            cb: cqBot = bot.cqbot
 
                             if key in ['pendant', 'nameplate']:
                                 if not userdata[key][key[0]+'id'] == u[key][key[0]+'id']:

@@ -14,9 +14,6 @@ obj2js = lambda obj: str(obj).replace('\\', '\\\\').replace('"', '\\"').replace(
 
 class cqBot(BaseBot):
     FILEDIR = os.path.dirname(__file__)
-    
-    def __init__(self, url: str = 'ws://127.0.0.1:2434', path: str = './go-cqhttp'):
-        super().__init__(url, path, 'cqBot')
 
     async def send(self, cmd: str | list | tuple | dict):
         if not self.converse:
