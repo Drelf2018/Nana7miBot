@@ -225,7 +225,8 @@ class guildBot(BaseBot):
                         img = await Live2Pic(uid=uid, roomid=roomid).makePic()
                         tt = int(time.time())
                         img.save(f'{self.PATH}/data/images/live/{uid}_{tt}.png')
-                        await self.cb.send_guild_msg(59204391636967121, 9673211, f'[CQ:at,qq=144115218753196143]/post {uid}_{tt}.png')
+                        if uid == 434334701:
+                            await self.cb.send_guild_msg(59204391636967121, 9673211, f'[CQ:at,qq=144115218753196143]/post {uid}_{tt}.png')
                         await self.send(uid, roomid, f'[CQ:image,file=live/{uid}_{tt}.png]')
                     except Exception as e:
                         log.error(e, 'pic')
