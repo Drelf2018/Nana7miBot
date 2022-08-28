@@ -178,7 +178,7 @@ class guildBot(BaseBot):
         match js['command']:
             case 'LIVE':  # 开播
                 tt = int(time.time())
-                if tt - ROOM_STATUS.get(roomid, 0) > 300:
+                if tt - ROOM_STATUS.get(roomid, 0) > 10800:
                     ROOM_STATUS[roomid] = tt
                     if (uid := js['live_info']['uid']) in self.users:
                         await self.send(uid, roomid, '{name}开播了！\n{title}[CQ:image,file={cover}]'.format_map(js['live_info']))
