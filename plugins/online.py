@@ -9,7 +9,7 @@ bot = get_driver()
 class Online:
     url = "https://m.weibo.cn/api/container/getIndex?from=page_100808&mod[]=TAB%3Ffrom%3Dpage_100808&mod[]=TAB&containerid=1008081a127e1db26d4483eadf1d1dbe1a80c2_-_live"
     last_online_status = None
-    cb: cqBot = bot.bot_dict['cqBot']
+    cb: cqBot = bot.cqbot
     async def online(self):
         async with httpx.AsyncClient() as session:
             resp = await session.get(self.url)

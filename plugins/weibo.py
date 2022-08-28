@@ -61,7 +61,7 @@ async def weibo(uid):
                     log.error(f'爬取用户 {uid} 信息失败 {e}', 'Weibo')
 
             # 获取 cqBot 适配器
-            cb: cqBot = bot.bot_dict['cqBot']
+            cb: cqBot = bot.cqbot
 
             # 文字版
             msg = '{name}\n粉丝 {follower} | 关注 {follow}\n发送了微博:\n'.format_map(userInfo)

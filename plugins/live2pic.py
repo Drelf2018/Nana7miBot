@@ -8,7 +8,7 @@ from nana7mi.adapters.cqbot import cqBot
 from plugins._live2pic import Live2Pic
 
 bot = get_driver()
-cb: cqBot = bot.bot_dict['cqBot']
+cb: cqBot = bot.cqbot
 
 # 响应来自 cqbot 的场报命令
 @bot.setResponse(command='/live')
