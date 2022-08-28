@@ -19,10 +19,11 @@ class BaseBot:
     def debug(self, msg: str):
         log.debug(msg, self.name)
 
-    def __init__(self, url: str = '', path: str = '', name: str = ''):
+    def __init__(self, parent=None, name: str = '', url: str = '', path: str = ''):
         self.url = url
         self.__path = path
         self.name = name
+        self._parent = parent
 
     @property
     def PATH(self) -> str:
@@ -31,10 +32,6 @@ class BaseBot:
     @property
     def Parent(self):
         return self._parent
-
-    def setParent(self, parent) -> Self:
-        self._parent = parent
-        return self
 
     async def connect(self):
         while not self.converse:
@@ -69,7 +66,7 @@ class BaseBot:
                 case 'heartbeat':
                     self.debug('心跳中，将在 '+str(event.interval/1000)+' 秒后下次心跳 ')
         elif isinstance(event, Message):
-            for func, funcInfo in self.Parent.response:
+            for func, funcInfo, _ in self.Parent.response:
                 await self.reply(event, await func(event))
                 if 'block=True' in funcInfo:
                     break

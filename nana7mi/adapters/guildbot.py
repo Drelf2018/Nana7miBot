@@ -51,6 +51,8 @@ class guildBot(BaseBot):
         self.listening_rooms = set()
         self.listening_users = set()
         self.guildMap = dict()
+        if not self.cfg:
+            return
         for guild, val in self.cfg.items():
             for roomid in set(val.get('roomid', list())):
                 self.listening_rooms.add(roomid)
@@ -68,9 +70,9 @@ class guildBot(BaseBot):
         # 将监听房间号告知 biligo-ws-live
         httpx.post(self.BASEURL+'/subscribe', headers={"Authorization": self.aid}, data={'subscribes': list(self.listening_rooms)})
 
-    def __init__(self, aid: str, BASEURL: str = 'http://localhost:8080'):
+    def __init__(self, parent=None, name: str = '', BASEURL: str = '', aid: str = 'stk', path='./go-cqhttp'):
         '连接 biligo-ws-live 的适配器'
-        super().__init__(BASEURL + f'/ws?id={aid}', path='./go-cqhttp')
+        super().__init__(parent, name, BASEURL + f'/ws?id={aid}', path=path)
         self.BASEURL = BASEURL
         self.aid = aid  #  接入 biligo-ws-live 时的 id 用来区分不同监控程序
         self.url = BASEURL + f'/ws?id={aid}' # biligo-ws-live 运行地址
@@ -82,7 +84,7 @@ class guildBot(BaseBot):
 
     async def run(self, loop=asyncio.get_event_loop()):
         '在执行任务循环前添加插件函数 最后再 super().run(loop)'
-        @self.Parent.setResponse('/stk map', ParseLimit(white_user=[144115218677563300], guild_both_user=True))
+        @self.Parent.setResponse('/stk map', ParseLimit(white_user=[144115218677563300]))
         async def queryMap(event: Message):
             if not event.message_type == MessageType.Guild:
                 return
@@ -166,7 +168,7 @@ class guildBot(BaseBot):
             return '\n'.join(msg)
 
         # 获取 cqBot 实例
-        self.cb: cqBot = self.Parent.bot_dict['cqBot']
+        self.cb: cqBot = self.Parent.cqbot
 
         # 连接 biligo-ws-live
         await super().run(loop)
