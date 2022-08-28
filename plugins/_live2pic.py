@@ -93,6 +93,7 @@ async def get_data_fig(dataMap: dict):
 
 async def word2pic(danmaku: list, folder: str='live/') -> Tuple[str, Image.Image]:
     # jieba 分词
+    jieba.add_word('睡啄')
     word = [u['msg'] for u in danmaku if u['type'] == 'DANMU_MSG']
     word = jieba.cut('/'.join(word), cut_all=False)
     word = '/'.join(word)
