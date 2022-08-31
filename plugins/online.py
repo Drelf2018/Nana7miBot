@@ -1,5 +1,5 @@
 import httpx
-from nana7mi import get_driver, log
+from nana7mi import get_driver, log, ParseLimit
 from nana7mi.adapters import cqBot
 from nana7mi.adapters.event import Message
 
@@ -37,6 +37,6 @@ class Online:
 nana7mi_online = Online()
 bot.sched.add_job(nana7mi_online.check, 'interval', next_run_time=bot.run_time(10), seconds=10)
 
-@bot.setResponse(command='/online')
+@bot.setResponse('/online', ParseLimit(banned_user=[1351078740, 144115218677924341], callback='[CQ:at,qq={user_id}]实在闲着没事就去把群口的大份挑了吧'))
 async def online(event: Message):
     return nana7mi_online.last_online_status
