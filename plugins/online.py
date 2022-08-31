@@ -27,9 +27,9 @@ class Online:
         if msg and msg != self.last_online_status:
             self.last_online_status = msg
             if msg == '微博在线了':
-                await self.cb.send_guild_msg(76861801659641160, 9638022, '七海Nana7mi '+msg)
+                await self.cb.send_guild_msg(76861801659641160, 9638022, '上线了')
             elif msg == '刚刚在线了':
-                await self.cb.send_guild_msg(76861801659641160, 9638022, '七海Nana7mi '+msg)
+                await self.cb.send_guild_msg(76861801659641160, 9638022, '离线了')
         log.info(msg, 'online')
 
 
