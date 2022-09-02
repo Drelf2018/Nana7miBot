@@ -156,3 +156,4 @@ botpy.log.*
 /plugins/weibo_detector/emoji
 *.yml
 go-cqhttp
+botpy.log.*
