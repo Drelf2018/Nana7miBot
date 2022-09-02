@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://user-images.githubusercontent.com/41439182/185760079-a8f6c1ba-ebcf-40dd-b728-69dbf1978ede.png" width="300px" />
+<img src="https://user-images.githubusercontent.com/41439182/185760079-a8f6c1ba-ebcf-40dd-b728-69dbf1978ede.png" width="250px" />
 
 # Nana7miBot
 
