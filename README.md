@@ -1,10 +1,6 @@
-<p align="center">
-  <a href="https://github.com/Drelf2018/Nana7miBot/">
-    <img src="https://user-images.githubusercontent.com/41439182/180245480-225c1988-d6f1-4f4e-b33d-fbda6016209a.png" width="250" height="250" alt="Nana7miBot">
-  </a>
-</p>
-
 <div align="center">
+
+<img src="https://user-images.githubusercontent.com/41439182/185760079-a8f6c1ba-ebcf-40dd-b728-69dbf1978ede.png" width="300px" />
 
 # Nana7miBot
 

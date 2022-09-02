@@ -6,11 +6,13 @@ from json import loads
 from typing import Literal, Tuple
 
 import httpx
-from aiowebsocket.converses import AioWebSocket
-from nana7mi.adapters.cqBot import Message, MessageType
+from bilibili_api import user
+from nana7mi import log
+from nana7mi.adapters import BaseBot, cqBot
+from nana7mi.adapters.event import Message, MessageType, ParseLimit
+from plugins._live2pic import Live2Pic
 from yaml import Loader, dump, load
 
-BASEURL = 'http://localhost:8080'
 SUPER_CHAT = []  # SC的唯一id避免重复记录
 ROOM_STATUS = {}  # 直播间开播状态
 room_notice ='''指令格式：/stk room []int
@@ -42,13 +44,15 @@ def isInt(m: str) -> Tuple[int, Literal[True]] | Tuple[str, Literal[False]]:
     except Exception:
         return m, False
 
-class guildBot:
+class guildBot(BaseBot):
     def initMap(self):
         # 初始化监听房间、监听用户，以及跳转表
         # 跳转表目的根据已知用户 uid 以及弹幕事件房间 roomid 获取需要推送的频道、子频道号
         self.listening_rooms = set()
         self.listening_users = set()
         self.guildMap = dict()
+        if not self.cfg:
+            return
         for guild, val in self.cfg.items():
             for roomid in set(val.get('roomid', list())):
                 self.listening_rooms.add(roomid)
@@ -64,42 +68,30 @@ class guildBot:
         # 快速判断监控用户
         self.users = list(self.listening_users)
         # 将监听房间号告知 biligo-ws-live
-        httpx.post(BASEURL+'/subscribe', headers={"Authorization": self.aid}, data={'subscribes': list(self.listening_rooms)})
+        httpx.post(self.BASEURL+'/subscribe', headers={"Authorization": self.aid}, data={'subscribes': list(self.listening_rooms)})
 
-    def __init__(self, aid: str, url: str = BASEURL+'/ws'):
+    def __init__(self, parent=None, name: str = '', BASEURL: str = '', aid: str = 'stk', path='./go-cqhttp'):
         '连接 biligo-ws-live 的适配器'
+        super().__init__(parent, name, BASEURL + f'/ws?id={aid}', path=path)
+        self.BASEURL = BASEURL
         self.aid = aid  #  接入 biligo-ws-live 时的 id 用来区分不同监控程序
-        self.url = url + f'?id={aid}' # biligo-ws-live 运行地址
+        self.url = BASEURL + f'/ws?id={aid}' # biligo-ws-live 运行地址
         self.converse = None  # 异步连接
         # 加载配置文件
-        with open(os.path.dirname(__file__)+'\\config.yml', 'r', encoding='utf-8') as fp:
+        with open(os.path.dirname(__file__)+'\\guildbot.yml', 'r', encoding='utf-8') as fp:
             self.cfg = load(fp, Loader=Loader)
             self.initMap()
 
-    async def connect(self):
-        '异步建立 ws 连接'
-        while not self.converse:  # 多次尝试连接 biligo-ws-live
-            try:
-                async with AioWebSocket(self.url) as aws:
-                    self.converse = aws.manipulator
-            except Exception:
-                self.parent.info('biligo-ws-live 重连中', 'STKbt')
-                await asyncio.sleep(3)
-        self.parent.info('biligo-ws-live 连接成功', 'STKbt')
-        return self.converse.receive  # 接受消息的函数
-
     async def run(self, loop=asyncio.get_event_loop()):
-        from nana7mi import get_bot
-        self.parent = get_bot()
-
-        @self.parent.cqbot.setResponse('/stk map', white_user=[144115218677563300], guild_both_user=True)
+        '在执行任务循环前添加插件函数 最后再 super().run(loop)'
+        @self.Parent.setResponse('/stk map', ParseLimit(white_user=[144115218677563300]))
         async def queryMap(event: Message):
             if not event.message_type == MessageType.Guild:
                 return
             msgs = [f'{k} -> {v}' for k, v in self.guildMap.items() if (int(event.guild_id), int(event.channel_id)) in v]
-            return event.reply('\n'.join(msgs))
+            return '\n'.join(msgs)
 
-        @self.parent.cqbot.setResponse('/stk room')
+        @self.Parent.setResponse('/stk room')
         async def modifyRoom(event: Message):
             if not event.message_type == MessageType.Guild:
                 return
@@ -107,13 +99,13 @@ class guildBot:
             rooms: list = copy(self.cfg.get(int(guild), dict()).get('roomid', list()))
 
             if not len(event.args):
-                return event.reply('该频道监控的直播间有：'+str(rooms)[1:-1])
+                return '该频道监控的直播间有：'+str(rooms)[1:-1]
             Add = set()
             Del = set()
             for roomid in event.args:
                 roomid, err = isInt(roomid)
                 if not err:
-                    return event.reply(f'参数错误：{roomid}\n{room_notice}' if roomid != 'help' else room_notice)
+                    return f'参数错误：{roomid}\n{room_notice}' if roomid != 'help' else room_notice
                 if roomid > 0:
                     if roomid not in rooms:
                         rooms.append(roomid)
@@ -134,9 +126,9 @@ class guildBot:
                 msg.append(f'新增监控直播间：{str(Add)[1:-1]}')
             if len(Del):
                 msg.append(f'移除监控直播间：{str(Del)[1:-1]}')
-            return event.reply('\n'.join(msg))
+            return '\n'.join(msg)
 
-        @self.parent.cqbot.setResponse('/stk user')
+        @self.Parent.setResponse('/stk user')
         async def modifyUser(event: Message):
             if not event.message_type == MessageType.Guild:
                 return
@@ -145,14 +137,14 @@ class guildBot:
             users: list = copy(self.cfg.get(int(guild), dict()).get(int(channel), list()))
 
             if not len(event.args):
-                return event.reply('该子频道监控的用户有：'+str(users)[1:-1])
+                return '该子频道监控的用户有：'+str(users)[1:-1]
 
             Add = set()
             Del = set()
             for uid in event.args:
                 uid, err = isInt(uid)
                 if not err:
-                    return event.reply(f'参数错误：{uid}\n{user_notice}' if uid != 'help' else user_notice)
+                    return f'参数错误：{uid}\n{user_notice}' if uid != 'help' else user_notice
                 if uid > 0:
                     if uid not in users:
                         users.append(uid)
@@ -173,17 +165,13 @@ class guildBot:
                 msg.append(f'新增监控用户：{str(Add)[1:-1]}')
             if len(Del):
                 msg.append(f'移除监控用户：{str(Del)[1:-1]}')
-            return event.reply('\n'.join(msg))
+            return '\n'.join(msg)
+
+        # 获取 cqBot 实例
+        self.cb: cqBot = self.Parent.cqbot
 
         # 连接 biligo-ws-live
-        recv = await self.connect()
-
-        while True:  # 死循环接受消息
-            try:
-                loop.create_task(self.parse(await recv()))
-            except Exception as e:
-                self.parent.error(f'接收消息时错误: {e}', 'STKbt')
-                break
+        await super().run(loop)
 
     async def parse(self, mes: bytes):
         js = loads(mes)
@@ -192,10 +180,10 @@ class guildBot:
         match js['command']:
             case 'LIVE':  # 开播
                 tt = int(time.time())
-                if tt - ROOM_STATUS.get(roomid, 0) > 300:
+                if tt - ROOM_STATUS.get(roomid, 0) > 10800:
                     ROOM_STATUS[roomid] = tt
                     if (uid := js['live_info']['uid']) in self.users:
-                        await self.send(uid, roomid, '{name} 正在直播\n标题：{title}[CQ:image,file={cover}]'.format_map(js['live_info']))
+                        await self.send(uid, roomid, '{name}开播了！\n{title}[CQ:image,file={cover}]'.format_map(js['live_info']))
             
             case 'INTERACT_WORD':  # 进入直播间
                 if (uid := int(js['content']['data']['uid'])) in self.users:
@@ -232,23 +220,29 @@ class guildBot:
 
             case 'PREPARING':  # 下播
                 if (uid := js['live_info']['uid']) in self.users:
-                    await self.send(uid, roomid, f'{uid} {roomid} 下播了')
-                    from plugins.live2pic import auto_pic
-                    tid = await auto_pic(uid, roomid)
-                    if isinstance(tid, int):
-                        await self.send(uid, roomid, f'[CQ:image,file=live/{uid}_{tid}.png]')
-                    else:
-                        await self.send(uid, roomid, f'生成直播场报失败: {tid}')
+                    try:
+                        if uid != 434334701:
+                            roominfo = await user.User(uid).get_live_info()
+                            roomid = roominfo['live_room']['roomid']
+                        img = await Live2Pic(uid=uid, roomid=roomid).makePic()
+                        tt = int(time.time())
+                        img.save(f'{self.PATH}/data/images/live/{uid}_{tt}.png')
+                        if uid == 434334701:
+                            await self.cb.send_guild_msg(59204391636967121, 9673211, f'[CQ:at,qq=144115218753196143]/post {uid}_{tt}.png')
+                        await self.send(uid, roomid, f'[CQ:image,file=live/{uid}_{tt}.png]')
+                    except Exception as e:
+                        log.error(e, 'pic')
+                        await self.send(uid, roomid, f'生成{u2}直播场报失败: {e}')                     
 
     async def send(self, uid: int, roomid: int, msg: str):
-        self.parent.info(f'发送消息: {msg}', 'STKbt')
+        log.info(f'发送消息: {msg}', 'STKbot')
         for guild_id, channel_id in self.guildMap.get((int(uid), int(roomid)), [(None, None)]):
             if not guild_id or not channel_id:
                 break
             else:
-                await self.parent.cqbot.send_guild_msg(guild_id, channel_id, msg)
+                await self.cb.send_guild_msg(guild_id, channel_id, msg)
 
     def save(self):
         # 加载配置文件
-        with open(os.path.dirname(__file__)+'\\config.yml', 'w', encoding='utf-8') as fp:
+        with open(os.path.dirname(__file__)+'\\guildbot.yml', 'w', encoding='utf-8') as fp:
             dump(self.cfg, fp, allow_unicode=True)
