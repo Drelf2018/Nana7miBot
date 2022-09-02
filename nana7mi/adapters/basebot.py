@@ -42,6 +42,7 @@ class BaseBot:
             except Exception:
                 self.debug('重连中...')
                 await asyncio.sleep(3)
+        self.info('连接成功')
         return self.converse.receive
 
     async def run(self, loop=asyncio.get_event_loop()):
@@ -59,9 +60,7 @@ class BaseBot:
         if isinstance(event, Mate):
             match event.event_type:
                 case 'lifecycle':
-                    if event.sub_type == 'connect':
-                        self.info('连接成功')
-                    else:
+                    if event.sub_type != 'connect':
                         self.error('连接失败')
                 case 'heartbeat':
                     self.debug('心跳中，将在 '+str(event.interval/1000)+' 秒后下次心跳 ')
