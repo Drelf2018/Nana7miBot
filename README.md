@@ -16,12 +16,19 @@ _✨ 基于 [go-cqhttp](https://github.com/Mrs4s/go-cqhttp) 以及 [OneBot](http
 import os
 
 from nana7mi import get_driver
-from nana7mi.adapters import cqBot, guildBot
+from nana7mi.adapters import cqBot
 
-bot = get_driver()  # 获取一个唯一的机器人框架
-bot.register_adapter(cqBot, url='ws://127.0.0.1:2434', path='./go-cqhttp')  # 为框架添加内置 go-cqhttp 适配器
-bot.load_builtin_plugins().load_plugins('./plugins').run()  # 加载内置插件以及从指定文件夹导入插件并运行
-os.system("start " + __file__)  # 重启
+# 获取一个唯一的机器人框架
+bot = get_driver()
+
+# 为框架添加内置 go-cqhttp 适配器
+bot.register_adapter(cqBot, url='ws://127.0.0.1:2434', path='./go-cqhttp')
+
+# 加载内置插件以及从指定文件夹导入插件并运行
+bot.load_builtin_plugins().load_plugins('./plugins').run()
+
+# 重启
+os.system("start " + __file__)
 ```
 **其中** `load_builtin_plugins()` 与 `load_plugins()` 均返回机器人自身，因此可以链式调用。
 
