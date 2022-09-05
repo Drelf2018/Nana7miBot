@@ -128,11 +128,8 @@ def on_command(command=None):
     def check(func):
         @wraps(func)
         def wrapped_function(event: Message):
-            if command:
-                if (pos := len(command)) > len(str(event)):
-                    return failed_return()
-                elif str(event)[:pos] != command:
-                    return failed_return()
+            if command and not str(event).startswith(command):
+                return failed_return()
             event.real_content = str(event).replace(command, '') if command else str(event)
             return func(event)
         return wrapped_function
