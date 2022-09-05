@@ -203,11 +203,11 @@ class guildBot(BaseBot):
                     msg = f'{u1} 在 {u2} 的直播间' + '{action} {giftName}'.format_map(data) + f'￥{data["price"]/1000}'
                     await self.send(uid, roomid, msg)
 
-            case 'GUARD_BUY':  # 接受到大航海
+            case 'USER_TOAST_MSG':  # 接受到大航海
                 data = js['content']['data']
                 if (uid := data['uid']) in self.users:
                     u1 = data['username']
-                    msg = f'{u1} 在 {u2} 的直播间赠送 {data["gift_name"]}￥{data["price"]//1000}'
+                    msg = f'{u1} 在 {u2} 的直播间赠送 {data["role_name"]}￥{data["price"]//1000}'
                     await self.send(uid, roomid, msg)
 
             case 'SUPER_CHAT_MESSAGE' | 'SUPER_CHAT_MESSAGE_JPN':  # 接受到醒目留言
