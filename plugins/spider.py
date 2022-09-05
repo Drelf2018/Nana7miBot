@@ -55,7 +55,7 @@ def data_to_msg(key, old, new):
             msg += new['medal']['medal_name'] + '|' + str(new['medal']['level'])
         except Exception:
             msg += '空'
-        return msg + f'\nold:{old}\nnew:{new}'
+        return msg
 
 
 @bot.sched.scheduled_job('interval', seconds=10, next_run_time=bot.run_time(12), args=[434334701])
