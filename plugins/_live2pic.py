@@ -120,7 +120,7 @@ async def get_info(session: httpx.AsyncClient(), url: str) -> Tuple[str, Tuple[d
     try:
         resp = await session.get(url, timeout=40.0)
     except Exception:
-        resp = await session.get(url.replace('localhost', 'frp.drelf.cn'), timeout=40.0)
+        resp = await session.get(url.replace('http://localhost:5762', 'https://api.nana7mi.link'), timeout=40.0)
     assert resp.status_code == 200
     liveinfo = resp.json()
     return 'info', liveinfo['live']
