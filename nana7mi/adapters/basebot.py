@@ -1,7 +1,6 @@
 import asyncio
 
 from aiowebsocket.converses import AioWebSocket, Converse
-from typing_extensions import Self
 
 from nana7mi import log
 from .event import Mate, Message, get_event_from_msg
@@ -19,11 +18,12 @@ class BaseBot:
     def debug(self, msg: str):
         log.debug(msg, self.name)
 
-    def __init__(self, parent=None, name: str = '', url: str = '', path: str = ''):
+    def __init__(self, parent, name: str, url: str = '', path: str = ''):
         self.url = url
-        self.__path = path
         self.name = name
-        self._parent = parent
+        self.__path = path
+        from nana7mi import Nana7mi
+        self._parent: Nana7mi = parent
 
     @property
     def PATH(self) -> str:
@@ -54,7 +54,10 @@ class BaseBot:
                 self.error(f'接收消息时错误: {e}')
                 break
         self.info('连接已断开')
-    
+
+    async def reply(self, event, msg: str):
+        ...
+
     async def parse(self, mes: bytes):
         event = get_event_from_msg(mes, self)
         if isinstance(event, Mate):
