@@ -2,7 +2,7 @@ aiohttp==3.8.1
 aiowebsocket==1.0.0.dev2
 APScheduler==3.9.1
 awaits==0.0.1
-bilibili_api==9.1.0
+bilibili-api-python>=11.8.1
 httpx==0.22.0
 jieba==0.42.1
 lxml==4.6.5

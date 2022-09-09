@@ -116,7 +116,7 @@ async def word2pic(danmaku: list, folder: str='live/') -> Tuple[str, Image.Image
     wc.generate(word)
     return 'wc', wc.to_image().resize((900, 900*bg.height//bg.width), Image.ANTIALIAS)
 
-async def get_info(session: httpx.AsyncClient(), url: str) -> Tuple[str, Tuple[dict, Image.Image]]:
+async def get_info(session: httpx.AsyncClient, url: str) -> Tuple[str, Tuple[dict, Image.Image]]:
     try:
         resp = await session.get(url, timeout=40.0)
     except Exception:
@@ -126,7 +126,7 @@ async def get_info(session: httpx.AsyncClient(), url: str) -> Tuple[str, Tuple[d
     return 'info', liveinfo['live']
 
 
-async def get_face(session: httpx.AsyncClient(), uid: int = 434334701) -> Tuple[str, Tuple[Image.Image, Optional[Image.Image]]]:
+async def get_face(session: httpx.AsyncClient, uid: int = 434334701) -> Tuple[str, Tuple[Image.Image, Optional[Image.Image]]]:
     # 爬取装扮及头像
     resp = await session.get(f'https://account.bilibili.com/api/member/getCardByMid?mid={uid}', timeout=20.0)
     js = resp.json()
