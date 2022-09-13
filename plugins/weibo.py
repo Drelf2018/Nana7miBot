@@ -71,8 +71,8 @@ async def weibo(uid):
                 # 文字版
                 msg = '{name}\n粉丝 {follower} | 关注 {follow}\n发送了微博:\n'.format_map(userInfo)
                 if post.get('repo'):
-                    msg += '\n{repo}\n----------'.format_map(post)
-                msg += '\n{text}\n\n{time}'.format_map(post)
+                    msg += '\n' + ''.join(post["repo"][0]) + '\n----------'
+                msg += '\n' + ''.join(post["text"][0]) + '\n\n' + post['time']
 
                 await cb.send_guild_msg(76861801659641160, 9638022, msg)
                 
