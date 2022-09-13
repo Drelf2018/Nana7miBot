@@ -22,7 +22,7 @@ class Nana7mi:
         self.sched = AsyncIOScheduler(timezone="Asia/Shanghai")
         self.run_time = lambda seconds: datetime.datetime.now() + datetime.timedelta(seconds=seconds)
 
-    def setResponse(self, command = None, plt: ParseLimit = None, priority: float=1.0, block: bool=False):
+    def setResponse(self, command: str = None, plt: ParseLimit = None, priority: float=1.0, block: bool=False):
         def response_function(func):
             @wraps(func)
             @on_command(command)
