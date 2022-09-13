@@ -1,16 +1,14 @@
 import os
 import qrcode
-import requests
 from math import ceil
 from PIL import Image, ImageDraw, ImageFont
-from io import BytesIO
 try:
     from .TextManager import TextManager, Font
 except Exception:
     from TextManager import TextManager, Font
 
 
-async def create_new_img(post: dict, userInfo: dict, headers=None, w=1080) -> Image.Image:
+async def create_new_img(post: dict, userInfo: dict, w=1080) -> Image.Image:
     """
     根据微博博文生成图片
     Args:
@@ -34,21 +32,27 @@ async def create_new_img(post: dict, userInfo: dict, headers=None, w=1080) -> Im
     tw, th = text_font.getsize('我不动脑子随手一写就是标标准准的二十一个字')
     size = int(100*text_width*w/tw)
     text_font = ImageFont.truetype(font_type, size)
-    content = [
-        (post.get('repo'), '#1D1D1F', size, Font.homo),
-        '#',
-        (post.get('text'), '#1D1D1F', size, Font.homo)
-    ]
+    
+    content = list()
+    repoText, apos = post.get('repo', ([], []))
+    for i, rt in enumerate(repoText):
+        if i in apos:
+            content.append((rt, (235, 115, 64), size, Font.homo))
+        else:
+            content.append((rt, '#1D1D1F', size, Font.homo))
+    content.append('#')
+    postText, apos = post.get('text', ([], []))
+    for i, pt in enumerate(postText):
+        if i in apos:
+            content.append((pt, (235, 115, 64), size, Font.homo))
+        else:
+            content.append((pt, '#1D1D1F', size, Font.homo))
 
     for pic in post.get('picUrls'):
-        try:
-            resp = requests.get(pic, headers=headers)  # 请求图片
-            bg = Image.open(BytesIO(resp.content))
-            bg = bg.convert('RGBA')  # 读取图片
-            bg = bg.resize((int(text_width*w), int(bg.height*text_width*w/bg.width)), Image.ANTIALIAS)  # 调整大小
-            content.append(bg)
-        except Exception as e:
-            print('[ERROR]: 图片加载错误', e, pic)
+        bg = Image.open(pic)
+        bg = bg.convert('RGBA')  # 读取图片
+        bg = bg.resize((int(text_width*w), int(bg.height*text_width*w/bg.width)), Image.ANTIALIAS)  # 调整大小
+        content.append(bg)
 
     # 测量 发送时间以及设备 文本的高宽
     url_font = ImageFont.truetype(font_type, int(75*text_width*w/tw))
@@ -94,8 +98,7 @@ async def create_new_img(post: dict, userInfo: dict, headers=None, w=1080) -> Im
     image.paste(qrimg, (int(0.83*w), int(im.height+0.38*w+th)))
 
     # 头像
-    response = requests.get(userInfo['face'])  # 请求图片
-    face = Image.open(BytesIO(response.content))  # 读取图片
+    face = Image.open(userInfo['face'])  # 读取图片
     a = Image.new('L', face.size, 0)  # 创建一个黑色背景的画布
     ImageDraw.Draw(a).ellipse((0, 0, a.width, a.height), fill=255)  # 画白色圆形
     face = face.resize((int(0.15*w), int(0.15*w)), Image.ANTIALIAS)

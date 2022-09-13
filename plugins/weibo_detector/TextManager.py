@@ -113,7 +113,7 @@ class TextManager:
 
     def paste(self, limit: int):
         x, y, line_height = 0, 0, 3
-        im = Image.new('RGBA', (int(limit), 1920), '#00000000')
+        im = Image.new('RGBA', (int(limit), 3000), '#00000000')
         draw = ImageDraw.Draw(im)
         for c in self.Content:
             if c == '#':
@@ -155,7 +155,7 @@ class TextManager:
                     x += w - c.getSize(pos)[0]
                     line_height = max(line_height, 1.333 * h)
                     pos = rpos
-
+        # print(y + (line_height if x else 0))
         return im.crop((0, 0, limit, y + (line_height if x else 0)))
 
 
