@@ -195,8 +195,11 @@ class guildBot(BaseBot):
                 if (uid := int(info[2][0])) in self.users:
                     u1 = info[2][1]
                     msg = f'{u1} 在 {u2} 的直播间说：{info[1]}'
-                    if image := info[0][13].get('url'):
-                        msg += f'[CQ:image,file={image}]'
+                    try:
+                        if image := info[0][13].get('url'):
+                            msg += f'[CQ:image,file={image}]'
+                    except Exception:
+                        ...
                     await self.send(uid, roomid, msg)
 
             case 'SEND_GIFT':  # 接受到礼物

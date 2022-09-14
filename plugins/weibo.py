@@ -77,10 +77,13 @@ async def weibo(uid):
                 await cb.send_guild_msg(76861801659641160, 9638022, msg)
                 
                 # 图片版
-                image = await create_new_img(post, userInfo)
-                image.save(cb.PATH + '/data/images/wb/'+post['mid']+'.png')
-
-                await cb.send_guild_msg(76861801659641160, 9638022, '[CQ:image,file=wb/{mid}.png]'.format_map(post))
+                try:
+                    image = await create_new_img(post, userInfo)
+                    image.save(cb.PATH + '/data/images/wb/'+post['mid']+'.png')
+                    img_text = '[CQ:image,file=wb/{mid}.png]'.format_map(post)
+                except Exception as e:
+                    img_text = str(e)
+                await cb.send_guild_msg(76861801659641160, 9638022, img_text)
 
                 # 发生变化保存到文件
                 Content[post['mid']] = {'content': rtext, 'comment': Content.get(post['mid'], {}).get('comment', list())}
