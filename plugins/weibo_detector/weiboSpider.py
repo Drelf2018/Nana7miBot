@@ -8,12 +8,7 @@ from lxml import etree
 
 name_a = re.compile(r"<a href='https://m.weibo.cn/n/([\u4E00-\u9FA5A-Za-z0-9_]+)'>@(\1)</a>")
 icon_span = re.compile(r'<span class="url-icon"><img alt="\[([\u4E00-\u9FA5A-Za-z0-9_]+)\]" src="([a-zA-z]+://[^\s]*)" style="width:1em; height:1em;" /></span>')
-ICON = {
-    '开学季': 'https://face.t.sinajs.cn/t4/appstyle/expression/ext/normal/72/2021_kaixueji_org.png',
-    '融化': 'https://face.t.sinajs.cn/t4/appstyle/expression/ext/normal/53/2022_melt_org.png',
-    '哇': 'https://face.t.sinajs.cn/t4/appstyle/expression/ext/normal/3d/2022_wow_org.png',
-    '苦涩': 'https://face.t.sinajs.cn/t4/appstyle/expression/ext/normal/7e/2021_bitter_org.png'
-}
+
 
 class EzFP:
     def __init__(self, data: bytes): self.__data = data
@@ -46,8 +41,7 @@ def get_content_text(span: etree._Element):
     # 将表情替换为图片链接
     for _span in span.xpath('./span[@class="url-icon"]'):
         src = _span.xpath('./img/@src')[0]
-        icon = ICON.get(src, src)
-        _span.insert(0, etree.HTML(f'<p>[{icon}]</p>'))
+        _span.insert(0, etree.HTML(f'<p>[{src}]</p>'))
 
     # 获取这个 span 的字符串形式 并去除 html 格式字符
     text: List[str] = [p.replace(u'\xa0', '').replace('&#13;', '\n') for p in span.xpath('.//text()')]
@@ -85,6 +79,7 @@ async def get_post(session: httpx.AsyncClient, data: etree._Element, n: int):
     repo = post.xpath('./div/span[@class="cmt" and contains(text(), "转发理由:")]/..')
     if repo:
         a, b = get_content_text(repo[0])
+        a[0] = a[0].replace(":", "：")
         postInfo['repo'] = a[:-1], b
 
     # 博文过长 更换网址进行爬取
@@ -124,7 +119,12 @@ async def get_detail(session: httpx.AsyncClient, postInfo: Dict[str, Any]):
 
     for pic in picUrls:
         try:
-            resp = requests.get(pic, headers=session.headers)  # 请求图片
+            for _ in range(3):
+                resp = requests.get(pic, headers=session.headers)  # 请求图片
+                if resp.status_code == 200:
+                    break
+            else:
+                raise '图片访问失败'
             postInfo['picUrls'].append(EzFP(resp.content))
         except Exception as e:
             postInfo['Error'].append(pic)

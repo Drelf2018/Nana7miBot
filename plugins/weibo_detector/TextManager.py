@@ -11,6 +11,13 @@ try:
 except Exception:
     from emoji import Emoji, getEmojiImg
 
+ICON = {
+    '开学季': 'https://face.t.sinajs.cn/t4/appstyle/expression/ext/normal/72/2021_kaixueji_org.png',
+    '融化': 'https://face.t.sinajs.cn/t4/appstyle/expression/ext/normal/53/2022_melt_org.png',
+    '哇': 'https://face.t.sinajs.cn/t4/appstyle/expression/ext/normal/3d/2022_wow_org.png',
+    '苦涩': 'https://face.t.sinajs.cn/t4/appstyle/expression/ext/normal/7e/2021_bitter_org.png',
+    '开学季': 'https://face.t.sinajs.cn/t4/appstyle/expression/ext/normal/72/2021_kaixueji_org.png'
+}
 
 class Font:
     msyh = 'C:/Windows/Fonts/msyh.ttc'
@@ -92,12 +99,14 @@ class TextManager:
                         last = now + 1
                     elif text[now] == ']':
                         if last != now:
-                            if text[last:now].startswith('http') and text[last:now].endswith('.png'):
-                                response = httpx.get(text[last:now])  # 请求图片
+                            if (url := text[last:now]) in ICON:
+                                url = ICON[url]
+                            if url.startswith('http') and url.endswith('.png'):
+                                response = httpx.get(url)  # 请求图片
                                 im = Image.open(BytesIO(response.content)).convert('RGBA')  # 读取图片
                                 self.Content.append(im)
                             else:
-                                self.Content.append(self.Text(text[last:now+1], *args))
+                                self.Content.append(self.Text(text[last-1:now+1], *args))
                         last = now + 1
                     now += 1
                 else:
@@ -111,9 +120,8 @@ class TextManager:
         for c in self.Content:
             print(c)
 
-    def paste(self, limit: int):
+    def prePaste(self, limit: int, im: Image.Image):
         x, y, line_height = 0, 0, 3
-        im = Image.new('RGBA', (int(limit), 3000), '#00000000')
         draw = ImageDraw.Draw(im)
         for c in self.Content:
             if c == '#':
@@ -155,9 +163,18 @@ class TextManager:
                     x += w - c.getSize(pos)[0]
                     line_height = max(line_height, 1.333 * h)
                     pos = rpos
-        # print(y + (line_height if x else 0))
+        if (fy := y + (line_height if x else 0)) > im.height:
+            return int(fy)
         return im.crop((0, 0, limit, y + (line_height if x else 0)))
 
+    def paste(self, limit: int):
+        im = Image.new('RGBA', (int(limit), 3000), '#00000000')
+        res = self.prePaste(limit, im)
+        if isinstance(res, int):
+            im = Image.new('RGBA', (int(limit), res + 1), '#00000000')
+            return self.prePaste(limit, im)
+        else:
+            return res
 
 async def main():
     im = (await TextManager().setContent([

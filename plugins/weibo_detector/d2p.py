@@ -47,11 +47,13 @@ async def create_new_img(post: dict, userInfo: dict, w=1080) -> Image.Image:
             content.append((pt, (235, 115, 64), size, Font.homo))
         else:
             content.append((pt, '#1D1D1F', size, Font.homo))
+    content.append('#')
 
+    div = 2 if len(post.get('picUrls', [])) >= 6 else 1
     for pic in post.get('picUrls'):
         bg = Image.open(pic)
         bg = bg.convert('RGBA')  # 读取图片
-        bg = bg.resize((int(text_width*w), int(bg.height*text_width*w/bg.width)), Image.ANTIALIAS)  # 调整大小
+        bg = bg.resize((int(text_width*w)//div, int(bg.height*text_width*w/bg.width)//div), Image.ANTIALIAS)  # 调整大小
         content.append(bg)
 
     # 测量 发送时间以及设备 文本的高宽
