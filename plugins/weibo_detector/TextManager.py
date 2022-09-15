@@ -103,7 +103,7 @@ class TextManager:
                                 url = ICON[url]
                             if url.startswith('http') and url.endswith('.png'):
                                 response = httpx.get(url)  # 请求图片
-                                im = Image.open(BytesIO(response.content)).convert('RGBA')  # 读取图片
+                                im = Image.open(response).convert('RGBA')  # 读取图片
                                 self.Content.append(im)
                             else:
                                 self.Content.append(self.Text(text[last-1:now+1], *args))
