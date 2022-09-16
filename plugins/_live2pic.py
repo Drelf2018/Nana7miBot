@@ -148,9 +148,12 @@ async def get_face(session: httpx.AsyncClient, uid: int = 434334701) -> Tuple[st
         bg = Image.new('RGBA', (int(1.75*w), int(1.75*h)), (0, 0, 0, 0))
         bg.paste(face, (int(0.375*w), int(0.375*h)), mask=a)  # 粘贴至背景
         pendant = pendant.resize((int(1.75*w), int(1.75*h)), Image.ANTIALIAS)  # 装扮应当是头像的1.75倍
-        bg.paste(pendant, (0, 0), mask=pendant.getchannel('A'))  # 粘贴至背景
+        try:
+            bg.paste(pendant, (0, 0), mask=pendant.getchannel('A'))  # 粘贴至背景
+        except Exception:
+            pendant = None
     # 粉圈
-    else:
+    if not pendant:
         image = Image.new('RGBA', (int(1.16*w), int(1.16*h)), (0, 0, 0, 0))
         image.paste(face, (int(0.08*w), int(0.08*h)), mask=a)  # 粘贴至背景
         ps = Image.new("RGB", (int(1.16*w), int(1.16*h)), (242, 93, 142))

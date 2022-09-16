@@ -238,7 +238,7 @@ class guildBot(BaseBot):
                         await self.send(uid, roomid, f'[CQ:image,file=live/{uid}_{tt}.png]')
                     except Exception as e:
                         log.error(e, 'pic')
-                        await self.send(uid, roomid, f'生成{u2}直播场报失败: {e}\n{CODE[e.__traceback__.tb_lineno]}')                     
+                        await self.send(uid, roomid, f'生成{u2}直播场报失败: {e}\n{CODE[e.__traceback__.tb_lineno].strip()}')                     
 
     async def send(self, uid: int, roomid: int, msg: str):
         log.info(f'发送消息: {msg}', 'STKbot')
