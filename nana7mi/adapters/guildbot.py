@@ -10,7 +10,7 @@ from bilibili_api import user
 from nana7mi import log
 from nana7mi.adapters import BaseBot, cqBot
 from nana7mi.adapters.event import Message, MessageType, ParseLimit
-from plugins._live2pic import Live2Pic
+from plugins._live2pic import Live2Pic, CODE
 from yaml import Loader, dump, load
 
 SUPER_CHAT = []  # SC的唯一id避免重复记录
@@ -238,7 +238,7 @@ class guildBot(BaseBot):
                         await self.send(uid, roomid, f'[CQ:image,file=live/{uid}_{tt}.png]')
                     except Exception as e:
                         log.error(e, 'pic')
-                        await self.send(uid, roomid, f'生成{u2}直播场报失败: {e}')                     
+                        await self.send(uid, roomid, f'生成{u2}直播场报失败: {e}\n{CODE[e.__traceback__.tb_lineno]}')                     
 
     async def send(self, uid: int, roomid: int, msg: str):
         log.info(f'发送消息: {msg}', 'STKbot')
