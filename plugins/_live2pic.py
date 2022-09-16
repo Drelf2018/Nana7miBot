@@ -330,9 +330,15 @@ class Live2Pic:
         return self.bg
 
 
+async def test():
+    async with httpx.AsyncClient() as session:
+        _, img = await get_face(session, 690608693)
+    img.show()
+
 if __name__ == '__main__':
     from bilibili_api import sync, user
-    uid = 434334701
-    roominfo = sync(user.User(uid).get_live_info())
-    roomid = roominfo['live_room']['roomid']
-    sync(Live2Pic(uid=uid, roomid=roomid).makePic()).show()
+    # uid = 434334701
+    # roominfo = sync(user.User(uid).get_live_info())
+    # roomid = roominfo['live_room']['roomid']
+    # sync(Live2Pic(uid=uid, roomid=roomid).makePic()).show()
+    sync(test())
