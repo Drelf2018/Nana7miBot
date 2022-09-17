@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 
 plt.style.use("ggplot")
 plt.rcParams['font.sans-serif'] = ['SimHei']
-CODE = open(__file__, 'r', encoding='utf-8').readlines()
+CORE_CODE = open(__file__, 'r', encoding='utf-8').readlines()
 
 
 async def get_data_fig(dataMap: dict):

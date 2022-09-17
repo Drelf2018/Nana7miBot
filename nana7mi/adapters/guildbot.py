@@ -10,11 +10,12 @@ from bilibili_api import user
 from nana7mi import log
 from nana7mi.adapters import BaseBot, cqBot
 from nana7mi.adapters.event import Message, MessageType, ParseLimit
-from plugins._live2pic import Live2Pic, CODE
+from plugins._live2pic import Live2Pic, CORE_CODE
 from yaml import Loader, dump, load
 
 SUPER_CHAT = []  # SC的唯一id避免重复记录
 ROOM_STATUS = {}  # 直播间开播状态
+APP_CODE = open(__file__, 'r', encoding='utf-8').readlines()
 room_notice ='''指令格式：/stk room []int
 在指令后用空格连接多个整数
 参数为正整数时添加监控该直播间
@@ -237,14 +238,18 @@ class guildBot(BaseBot):
                             await self.cb.send_guild_msg(59204391636967121, 9673211, f'[CQ:at,qq=144115218753196143]/post {uid}_{tt}.png')
                         await self.send(uid, roomid, f'[CQ:image,file=live/{uid}_{tt}.png]')
                     except Exception as e:
-                        log.error(e, 'pic')
-                        file = e.__traceback__.tb_frame.f_globals["__file__"]  # 发生异常所在的文件
-                        line = e.__traceback__.tb_lineno  # 发生异常所在的行数
+                        log.error(e, 'STKbot')
+                        class EzTB:
+                            tb_next = e.__traceback__
+                        tb = EzTB()
+                        while (tb := tb.tb_next):
+                            file = tb.tb_frame.f_globals["__file__"]  # 发生异常所在的文件
+                            line = tb.tb_lineno  # 发生异常所在的行数
 
-                        await self.send(uid, roomid, f'''生成{u2}直播场报失败: {e}
+                            await self.send(uid, roomid, f'''生成{u2}直播场报失败: {e}
 异常文件：{file}
 异常行数：{line}
-异常代码：{CODE[e.__traceback__.tb_lineno].strip()}''')                     
+异常代码：{(APP_CODE if file == __file__ else CORE_CODE)[line-1].strip()}''')
 
     async def send(self, uid: int, roomid: int, msg: str):
         log.info(f'发送消息: {msg}', 'STKbot')
