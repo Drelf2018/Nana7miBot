@@ -246,10 +246,7 @@ class guildBot(BaseBot):
                             file = tb.tb_frame.f_globals["__file__"]  # 发生异常所在的文件
                             line = tb.tb_lineno  # 发生异常所在的行数
 
-                            await self.send(uid, roomid, f'''生成{u2}直播场报失败: {e}
-异常文件：{file}
-异常行数：{line}
-异常代码：{(APP_CODE if file == __file__ else CORE_CODE)[line-1].strip()}''')
+                            await self.send(uid, roomid, f'''生成{u2}直播场报失败: {e} 异常文件：{file} 异常行数：{line} 异常代码：{(APP_CODE if file == __file__ else CORE_CODE)[line-1].strip()}''')
 
     async def send(self, uid: int, roomid: int, msg: str):
         log.info(f'发送消息: {msg}', 'STKbot')
