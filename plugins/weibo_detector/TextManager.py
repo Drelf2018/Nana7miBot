@@ -16,7 +16,9 @@ ICON = {
     '融化': 'https://face.t.sinajs.cn/t4/appstyle/expression/ext/normal/53/2022_melt_org.png',
     '哇': 'https://face.t.sinajs.cn/t4/appstyle/expression/ext/normal/3d/2022_wow_org.png',
     '苦涩': 'https://face.t.sinajs.cn/t4/appstyle/expression/ext/normal/7e/2021_bitter_org.png',
-    '开学季': 'https://face.t.sinajs.cn/t4/appstyle/expression/ext/normal/72/2021_kaixueji_org.png'
+    '开学季': 'https://face.t.sinajs.cn/t4/appstyle/expression/ext/normal/72/2021_kaixueji_org.png',
+    '单身青蛙': 'https://face.t.sinajs.cn/t4/appstyle/expression/ext/normal/6c/2022_SingleFrog_org.png',
+    '收到': 'https://face.t.sinajs.cn/t4/appstyle/expression/ext/normal/8b/2022_get_org.png'
 }
 
 class Font:
