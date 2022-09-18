@@ -35,7 +35,7 @@ headers = {
 }
 
 async def weibo(uid):
-    log.info(f'正在更新用户 {uid} 微博', 'Weibo')
+    log.debug(f'正在更新用户 {uid} 微博', 'Weibo')
     async with httpx.AsyncClient(headers=headers) as session:
         try:
             data = await get_data(session, uid)
