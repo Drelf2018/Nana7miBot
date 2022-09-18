@@ -215,7 +215,8 @@ class Live2Pic:
         self.text_color = '#1D1D1F'
 
     def paste(self, img: Image.Image, box: tuple):
-        self.bg.paste(img, box, mask=img.getchannel('A'))
+        if img:
+            self.bg.paste(img, box, mask=img.getchannel('A'))
 
     async def makePic(self):
         # 主函数 用于生成图片
