@@ -228,9 +228,6 @@ class guildBot(BaseBot):
             case 'PREPARING':  # 下播
                 if (uid := js['live_info']['uid']) in self.users:
                     try:
-                        if uid != 434334701:
-                            roominfo = await user.User(uid).get_live_info()
-                            roomid = roominfo['live_room']['roomid']
                         img = await Live2Pic(uid=uid, roomid=roomid).makePic()
                         tt = int(time.time())
                         img.save(f'{self.PATH}/data/images/live/{uid}_{tt}.png')
@@ -243,10 +240,13 @@ class guildBot(BaseBot):
                             tb_next = e.__traceback__
                         tb = EzTB()
                         while (tb := tb.tb_next):
-                            file = tb.tb_frame.f_globals["__file__"]  # 发生异常所在的文件
+                            file = tb.tb_frame.f_globals["__file__"].replace('\\', '\\\\')  # 发生异常所在的文件
                             line = tb.tb_lineno  # 发生异常所在的行数
 
-                            await self.send(uid, roomid, f'''生成{u2}直播场报失败: {e} 异常文件：{file} 异常行数：{line} 异常代码：{(APP_CODE if file == __file__ else CORE_CODE)[line-1].strip()}''')
+                            await self.send(uid, roomid, f'''生成{u2}直播场报失败: {e}
+异常文件：{file}
+异常行数：{line}
+异常代码：{(APP_CODE if file == __file__ else CORE_CODE)[line-1].strip()}''')
 
     async def send(self, uid: int, roomid: int, msg: str):
         log.info(f'发送消息: {msg}', 'STKbot')
