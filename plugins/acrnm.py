@@ -1,74 +1,78 @@
-import asyncio
-from typing import Optional, Set, Tuple
-
 import httpx
+import asyncio
 from lxml import etree
 from nana7mi import get_driver, log
 from nana7mi.adapters import cqBot
 from nana7mi.adapters.event import Message
 
-BASEURL = 'https://acrnm.com'
-Cookies = 'cookies_accepted=eyJfcmFpbHMiOnsibWVzc2FnZSI6ImRISjFaUT09IiwiZXhwIjoiMjAyMi0xMC0yMlQxNzoxMjoyNC41MjhaIiwicHVyIjoiY29va2llLmNvb2tpZXNfYWNjZXB0ZWQifX0=--a10dc29d513c2aa856f3065cf9e8fc342c4b4b5b; shopping_cart=eyJfcmFpbHMiOnsibWVzc2FnZSI6IklsdGRJZz09IiwiZXhwIjoiMjAyMi0wOC0wM1QwOToxMToxNy43NzVaIiwicHVyIjoiY29va2llLnNob3BwaW5nX2NhcnQifX0=--633b9fd86b8ee58c5039e4683e8bddd2a409f656; _acronym_session_production=52FeG+wDv/eZEDhlnHIQ2MgbiS6CQk8xd4QNAsGqlmvg9UP3t3yonwiUC67E4BGE9HP3z4FBupokfxKSFWyHWg4N9P+V2s+RE9PvyXxS1ae5oOEgKhB7TvWWHV48X7rJsv9jhs9evjbGXVT5nQlifcyPS5pleBv66DWHWwIX1HqYA0ppaO9Wk4aoySONDFgXbTGiZQ05wTXrQmC7kPTEeTxj8mJ5uRBw3q3XpZk+oPrzgoEclzQ5NL95EvaHNUuZqfdUS6oGY6Yj3j8b4MeJQ6lucira+AlOcYZ3eyhJZ7wSaQ4WepIvLBQYSVyvHDjlhvwB/Q2c2gJsG1oFkecISOIahA==--dBb2CQvzAH5vqZWg--knF0y1Mcp1pTVnxfIPuDNw==; acr_window_height=722; acr_window_pixel_ratio=1.25; acr_window_width=851'
+BASEURL = 'https://acrnm.com/?sort=default&filter=txt'
 Products = dict()
 bot = get_driver()
 cb: cqBot = bot.cqbot
 
-async def get_list(session: httpx.AsyncClient(), init: bool = False):
-    if init:
-        async with httpx.AsyncClient() as session:
-            resp = await session.get(BASEURL, timeout=250.0)
-    else:
-        resp = await session.get(BASEURL, timeout=250.0)
+async def get_list(init=False):
+    resp = httpx.get(BASEURL, timeout=250.0)
+    data = etree.HTML(resp.text)
+    new_products = dict()
+    for tr in data.xpath('.//tbody/tr'):
+        msgs = ""
+        for td in tr.xpath('./td'):
+            match tag := td.xpath("./@class")[0][39:-5]:
+                case "title":
+                    name = td.xpath('.//span/text()')[0]
+                    msgs += name + '\n'
+                    if name not in Products:
+                        Products[name] = dict()
+                        Products[name]["variant"] = dict()
+                        Products[name]["price"] = dict()
+                case "variant":
+                    for span in td.xpath('./div/span'):
+                        color = '/'.join(span.xpath("./div/span/text()"))
+                        size = '/'.join(span.xpath("./span/text()"))       
+                        Products[name][tag][color] = size
+                case "price":
+                    if val := td.xpath('.//span/text()'):
+                        if val[0] not in Products[name][tag]:
+                            msgs += f'{tag}: {val[0]}\n'
+                            Products[name][tag][val[0]] = None
+                        if Products[name][tag][val[0]] != Products[name]["variant"]:
+                            Products[name][tag][val[0]] = Products[name]["variant"]
+                            for c, s in Products[name]["variant"].items():
+                                msgs += f'{c}: {s}\n'
+                        Products[name]["variant"] = dict()
+                case _:
+                    if val := td.xpath('.//span/text()'):
+                        if Products[name].get(tag) != val[0]:
+                            msgs += f'{tag}: {val[0]}\n'
+                        Products[name][tag] = val[0]
+        if msgs != name + '\n': new_products[name] = msgs
+    
+    if init: return
 
-    data = etree.HTML(resp.content)
-    for a in data.xpath('/html/body/div/div[2]/div/div/a'):
-        name = a.xpath('./div[@class="name"]/text()')[0]
-        if not Products.get(name):
-            Products[name] = {'url': a.xpath('./@href')[0], 'option': set()}
-            if not init:
-                await cb.send_private_msg(2086378741, f'新增 {name} 项')
+    if new_products: imgs = etree.HTML(httpx.get("https://acrnm.com/").text)
+    for name, msgs in new_products.items():
+        try:
+            img = "https://acrnm.com/" + imgs.xpath(f'.//span[text()="{name}"]/../img/@src')[0]
+            msgs = msgs.strip() + f'[CQ:image,file={img}]'
+        except:
+            ...
+        log.info(msgs, 'acrnm')
+        await cb.send_private_msg(2086378741, msgs)
 
-
-async def get_detail(session: httpx.AsyncClient(), name: str, val: dict) -> Tuple[str, Set[Optional[str]]]:
-    try:
-        resp = await session.get(BASEURL+val['url'], timeout=250.0)
-        data = etree.HTML(resp.content)
-        content = set(data.xpath('//*[@id="variety_id"]/option/text()'))
-        if val['option']:
-            if not val['option'] == content:
-                msg = name + '\n'
-                soldout = list(val['option'].difference(content))
-                if soldout:
-                    msg += '售罄：' + ', '.join(soldout) + '\n'
-                new = list(content.difference(val['option']))
-                if new:
-                    msg += '上新：' + ', '.join(new) + '\n'
-                await cb.send_private_msg(2086378741, msg.strip())
-                log.info(msg.strip(), 'acrnm')
-        val['option'] = content
-    except Exception as e:
-        log.error(f'{name} error: {e}', 'acrnm')
-
-
-@bot.sched.scheduled_job('interval', seconds=300, next_run_time=bot.run_time(5))
+@bot.sched.scheduled_job('interval', seconds=300, next_run_time=bot.run_time(30))
 async def main():
-    loop = asyncio.get_event_loop()
-    async with httpx.AsyncClient(headers={'cookie': Cookies, 'Connection': 'close'}, timeout=250.0) as session:
-        for key, val in Products.items():
-            loop.create_task(get_detail(session, key, val))
-        loop.create_task(get_list(session))
-        log.info('更新完成', 'acrnm')
-        await asyncio.sleep(250)
+    await get_list()
+    log.info('更新完成', 'acrnm')
 
-asyncio.run(get_list(None, init=True))
+asyncio.run(get_list(init=True))
 
-# 响应来自 cqbot 的查询命令
-@bot.setResponse(command='/acrnm')
-async def acrnm(event: Message):
-    args = event.content.split()
-    match args[0]:
-        case 'list':
-            return event.reply(', '.join(list(Products.keys())))
-        case 'query':
-            pro = args[1]
-            return event.reply(', '.join(list(Products.get(pro, {}).get('option', set()))))
+# # 响应来自 cqbot 的查询命令
+# @bot.setResponse(command='/acrnm')
+# async def acrnm(event: Message):
+#     args = event.content.split()
+#     match args[0]:
+#         case 'list':
+#             return event.reply(', '.join(list(Products.keys())))
+#         case 'query':
+#             pro = args[1]
+#             return event.reply(', '.join(list(Products.get(pro, {}).get('option', set()))))
