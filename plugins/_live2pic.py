@@ -21,7 +21,14 @@ plt.rcParams['font.sans-serif'] = ['SimHei']
 CORE_CODE = open(__file__, 'r', encoding='utf-8').readlines()
 
 
-async def get_data_fig(dataMap: dict):
+async def get_data_fig(tempDataMap: dict):
+    dataMap = dict()
+    for k, v in tempDataMap.items():
+        s = time.strftime('%m/%d', time.localtime(int(k)))
+        if not dataMap.get(s):
+            dataMap[s] = v
+            if len(dataMap) >= 7:
+                break
     fig, ax = plt.subplots(figsize=(12, 4))
 
     title = list(dataMap.keys())[::-1]
@@ -95,7 +102,7 @@ async def get_data_fig(dataMap: dict):
 async def word2pic(danmaku: list, folder: str='live/') -> Tuple[str, Image.Image]:
     # jieba 分词
     jieba.add_word('睡啄')
-    word = [u['msg'] for u in danmaku if u['type'] == 'DANMU_MSG']
+    word = [u['text'] for u in danmaku if "text" in u]
     word = jieba.cut('/'.join(word), cut_all=False)
     word = '/'.join(word)
     bg = Image.new('RGB', (1326, 500))
@@ -117,14 +124,28 @@ async def word2pic(danmaku: list, folder: str='live/') -> Tuple[str, Image.Image
     wc.generate(word)
     return 'wc', wc.to_image().resize((900, 900*bg.height//bg.width), Image.ANTIALIAS)
 
-async def get_info(session: httpx.AsyncClient, url: str) -> Tuple[str, Tuple[dict, Image.Image]]:
-    try:
-        resp = await session.get(url, timeout=40.0)
-    except Exception:
-        resp = await session.get(url.replace('http://localhost:5762', 'https://api.nana7mi.link'), timeout=40.0)
-    assert resp.status_code == 200
-    liveinfo = resp.json()
-    return 'info', liveinfo['live']
+async def get_info(session: httpx.AsyncClient, uid: str) -> Tuple[str, Tuple[dict, Image.Image]]:
+    url = f"https://api.matsuri.icu/channel/{uid}/clips"
+    resp = await session.get(url, timeout=40.0)
+    assert resp.status_code == 200, "获取列表错误"
+    tid = resp.json()["data"][0]["id"]
+
+    url = f"https://api.matsuri.icu/clip/{tid}"
+    resp = await session.get(url, timeout=40.0)
+    assert resp.status_code == 200, "获取直播错误"
+    liveinfo = resp.json()["data"]
+
+    url = f"https://api.matsuri.icu/clip/{tid}/comments"
+    resp = await session.get(url, timeout=40.0)
+    assert resp.status_code == 200, "获取弹幕错误"
+    liveinfo["danmaku"] = resp.json()["data"]
+    return 'info', liveinfo
+
+async def get_data(session: httpx.AsyncClient, roomid: str):
+    url = f'https://api.nana7mi.link/live/{roomid}/last'
+    resp = await session.get(url, timeout=40.0)
+    assert resp.status_code == 200, "获取数据错误"
+    return "data", resp.json()["data"]
 
 
 async def get_face(session: httpx.AsyncClient, uid: int = 434334701) -> Tuple[str, Tuple[Image.Image, Optional[Image.Image]]]:
@@ -234,8 +255,9 @@ class Live2Pic:
 
         async with httpx.AsyncClient(headers=Headers) as session:
             pending = [
-                asyncio.create_task(get_info(session, f'http://localhost:5762/live/{self.roomid}/last')),
+                asyncio.create_task(get_info(session, self.uid)),
                 asyncio.create_task(get_face(session, self.uid)),
+                asyncio.create_task(get_data(session, self.roomid))
             ]
             while pending:
                 done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
@@ -246,9 +268,10 @@ class Live2Pic:
                         print(e, done_task)
                         continue
                     match code:
+                        case 'data':
+                            pending.add(asyncio.create_task(get_data_fig(data)))
                         case 'info':
                             self.liveinfo = data
-                            pending.add(asyncio.create_task(get_data_fig(data['dataMap'])))
                             pending.add(asyncio.create_task(word2pic(data['danmaku'], self.folder)))
                         case 'face':
                             face = data
@@ -261,26 +284,25 @@ class Live2Pic:
         with open(f'{self.folder}quotations.yml', 'r', encoding='utf-8') as fp:
             quotations = load(fp, Loader=Loader)
             quotation = quotations.get(int(self.uid))
-
-        t2s = lambda tt: time.strftime('%m/%d %H:%M', time.localtime(tt))
+        t2s = lambda tt: time.strftime('%m/%d %H:%M', time.localtime(tt//1000))
         self.draw.text((70, 178), '标题：'+self.liveinfo["title"], fill=self.text_color, font=self.fontbd[32])
-        self.draw.text((70, 228), f'时间：{t2s(self.liveinfo["st"])} - {t2s(self.liveinfo["sp"])}', fill=self.text_color, font=self.font[28])
+        self.draw.text((70, 228), f'时间：{t2s(self.liveinfo["start_time"])} - {t2s(self.liveinfo["end_time"])}', fill=self.text_color, font=self.font[28])
         self.draw.text((615, 1305), '*数据来源：api.nana7mi.link', fill='grey', font=self.font[30])
         if quotation:
             self.draw.text((140, 1440), choice(quotation), fill='grey', font=self.font[32])
         else:
             face_count += 1
 
-        self.draw.text((70, 105), self.liveinfo['username']+' 直播记录', fill=self.text_color, font=self.fontbd[50])
+        self.draw.text((70, 105), self.liveinfo['name']+' 直播记录', fill=self.text_color, font=self.fontbd[50])
         self.draw.text((70, 271), '基础数据', fill=self.text_color, font=self.fontbd[40])
         self.draw.text((70, 490), '趋势图表', fill=self.text_color, font=self.fontbd[40])
         self.draw.text((70, 885), '弹幕词云', fill=self.text_color, font=self.fontbd[40])
 
-        total_income = self.liveinfo['send_gift'] + self.liveinfo['guard_buy'] + self.liveinfo['super_chat_message']
-
+        total_income = self.liveinfo['total_reward']
+        # self.liveinfo['guard_buy']
         basicData = [
-            [('营收：', round(total_income, 2), self.text_color), ('弹幕：', self.liveinfo['total'], self.text_color), ('密度：', str(self.liveinfo['total']*60//(self.liveinfo['sp']-self.liveinfo['st']))+' / min', self.text_color)],
-            [('礼物：', round(self.liveinfo['send_gift'], 2), (255, 168, 180)), ('航海：', round(self.liveinfo['guard_buy'], 2), (132, 212, 155)), ('醒目留言：', round(self.liveinfo['super_chat_message'], 2), (74, 194, 246))],
+            [('弹幕：', self.liveinfo['total_danmu'], self.text_color), ('密度：', str(self.liveinfo['total_danmu']*60000//(self.liveinfo['end_time']-self.liveinfo['start_time']))+' / min', self.text_color)],
+            [('营收：', round(total_income, 2), (132, 212, 155)), ('礼物：', round(self.liveinfo['total_gift'], 2), (255, 168, 180)), ('醒目留言：', round(self.liveinfo['total_superchat'], 2), (74, 194, 246))],
         ]
 
         for i, rows in enumerate(basicData):  # 写“基础数据”文字
@@ -288,10 +310,10 @@ class Live2Pic:
                 self.draw.text((70+240*j, 329+51*i), data[0], fill=self.text_color, font=self.font[35])
                 self.draw.text((70+240*j+35*len(data[0]), 329+51*i+4), str(data[1]), fill=data[2], font=self.font[32])
 
-        income = Image.new('RGBA', (940, 50), (132, 212, 155) if self.liveinfo['guard_buy'] else 'grey')
+        income = Image.new('RGBA', (940, 50), 'grey')  #  (132, 212, 155) if self.liveinfo['guard_buy'] else 
         if total_income:
-            income.paste((255, 168, 180), (0, 0, int(940*self.liveinfo['send_gift']/total_income), 50))
-            income.paste((74, 194, 246), (int(940*(total_income-self.liveinfo['super_chat_message'])/total_income), 0, 940, 50))
+            income.paste((255, 168, 180), (0, 0, int(940*self.liveinfo['total_gift']/total_income), 50))
+            income.paste((74, 194, 246), (int(940*(total_income-self.liveinfo['total_superchat'])/total_income), 0, 940, 50))
         self.paste(circle_corner(income, 25), (70, 430))
 
         # 右上角立绘
@@ -338,8 +360,4 @@ async def test():
 
 if __name__ == '__main__':
     from bilibili_api import sync, user
-    # uid = 434334701
-    # roominfo = sync(user.User(uid).get_live_info())
-    # roomid = roominfo['live_room']['roomid']
-    # sync(Live2Pic(uid=uid, roomid=roomid).makePic()).show()
-    sync(test())
+    sync(Live2Pic(uid=434334701, roomid=21452505).makePic()).show()
